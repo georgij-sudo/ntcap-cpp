@@ -6,12 +6,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Собирать динамическую библиотеку" OFF)
 option(BUILD_TESTS "Собирать тесты" ON)
+option(ENABLE_COVERAGE "Enable coverage reporting" ON)
 
-add_subdirectory(lib)
-add_subdirectory(gui)
+if(ENABLE_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(--coverage -O0 -g --no-inline)
+        add_link_options(--coverage)
+    else()
+        message(FATAL_ERROR "Coverage requires GCC or Clang")
+    endif()
+endif()
 
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
+add_subdirectory(lib)
+add_subdirectory(gui)
