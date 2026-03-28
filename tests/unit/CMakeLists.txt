@@ -19,6 +19,7 @@ include(GoogleTest)
 add_executable(unit_tests
     main.cpp
     table_rule.cpp
+    torus.cpp
     # test_another.cpp     # добавляйте файлы по мере роста
 )
 

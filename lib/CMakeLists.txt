@@ -1,5 +1,5 @@
 add_library(ntcap
-    ntcap.h
+    TorusTopology.cpp
 )
 
 set_target_properties(ntcap PROPERTIES LINKER_LANGUAGE CXX)
