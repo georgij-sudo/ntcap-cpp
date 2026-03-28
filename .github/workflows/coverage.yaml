@@ -1,0 +1,45 @@
+name: Coverage
+
+on:
+  pull_request:
+    branches: ['*']
+
+jobs:
+  coverage:
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_COVERAGE=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        working-directory: build
+        run: ctest --output-on-failure -j$(nproc)
+
+      - name: Generate coverage report
+        run: |
+          mkdir -p coverage_report
+          gcovr --root . \
+                --filter 'lib/.*' \
+                --exclude 'tests/.*' \
+                --branches \
+                --print-summary \
+                --cobertura coverage.xml \
+                --html-details coverage_report/index.html
+
+      - name: Check coverage threshold
+        run: |
+          gcovr --root . \
+                --filter 'lib/.*' \
+                --exclude 'tests/.*' \
+                --fail-under-line 80 \
+                --fail-under-branch 60
