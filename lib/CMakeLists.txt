@@ -1,5 +1,6 @@
 add_library(ntcap
     TorusTopology.cpp
+    Planes.cpp
 )
 
 set_target_properties(ntcap PROPERTIES LINKER_LANGUAGE CXX)
