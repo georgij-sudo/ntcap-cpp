@@ -94,17 +94,40 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
     // Фон за пределами поля.
     painter.fillRect(rect(), QColor(40, 40, 40));
 
-    // Трансформация: поле → виджет.
-    // widgetPos = (fieldPos - offset) * zoom
-    painter.translate(-m_offset.x() * m_zoom,
-                      -m_offset.y() * m_zoom);
-    painter.scale(m_zoom, m_zoom);
+    // ── Видимая область поля (в координатах поля) ───────
+    const QPointF topLeftField     = widgetToField({0.0, 0.0});
+    const QPointF bottomRightField = widgetToField({
+        static_cast<qreal>(width()),
+        static_cast<qreal>(height())
+    });
 
-    // При зуме > 1 рисуем пиксели без сглаживания (чёткие клетки).
-    // При зуме < 1 — тоже без, для скорости.
+    // Обрезаем до границ поля [0, fieldWidth) × [0, fieldHeight).
+    const qreal srcLeft   = std::max(topLeftField.x(),     0.0);
+    const qreal srcTop    = std::max(topLeftField.y(),     0.0);
+    const qreal srcRight  = std::min(bottomRightField.x(), static_cast<qreal>(m_fieldWidth));
+    const qreal srcBottom = std::min(bottomRightField.y(), static_cast<qreal>(m_fieldHeight));
+
+    if (srcLeft >= srcRight || srcTop >= srcBottom) {
+        return;  // Поле полностью за пределами виджета.
+    }
+
+    const QRectF sourceRect(srcLeft, srcTop,
+                            srcRight - srcLeft,
+                            srcBottom - srcTop);
+
+    // ── Куда рисуем (в координатах виджета) ─────────────
+    // fieldToWidget: widgetPos = (fieldPos − offset) × zoom
+    const QRectF targetRect(
+        (srcLeft   - m_offset.x()) * m_zoom,
+        (srcTop    - m_offset.y()) * m_zoom,
+        (srcRight  - srcLeft)      * m_zoom,
+        (srcBottom - srcTop)       * m_zoom
+    );
+
+    // Без сглаживания — чёткие клетки при увеличении.
     painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
 
-    painter.drawImage(0, 0, m_image);
+    painter.drawImage(targetRect, m_image, sourceRect);
 }
 
 // ─── wheelEvent: зум к курсору ──────────────────────────────────────
