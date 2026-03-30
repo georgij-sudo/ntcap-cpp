@@ -29,16 +29,16 @@ int main(int argc, char* argv[])
     );
     controller.setInterval(16);
 
+    // ── Канвас: фиксированный размер виджета ────────────
     CellularCanvas canvas(W, H);
     canvas.setPlanes(controller.planes(), 0);
-    canvas.setWindowTitle("Parity CA (Von Neumann)");
+    canvas.setWindowTitle("Parity CA — scroll to zoom, drag to pan");
 
-    // ── Пользовательская цветовая карта ─────────────────
     QMap<uint8_t, QRgb> colorMap;
-    colorMap[0] = qRgb(20,  20,  30);    // мёртвая — тёмно-серый
-    colorMap[1] = qRgb(0,   200, 120);   // живая   — зелёный
+    colorMap[0] = qRgb(20,  20,  30);
+    colorMap[1] = qRgb(0,   200, 120);
     canvas.setColorMap(colorMap);
-    canvas.setDefaultColor(qRgb(255, 0, 0));  // неизвестное — красный (отладка)
+    canvas.setDefaultColor(qRgb(255, 0, 0));
 
     QObject::connect(&controller, &AutomatonController::stepped,
                      &canvas,     &CellularCanvas::refresh);
