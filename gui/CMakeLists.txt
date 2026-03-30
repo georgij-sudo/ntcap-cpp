@@ -4,6 +4,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
 add_executable(ntcap-gui
     main.cpp
+    CellularCanvas.cpp
 )
 
 target_link_libraries(ntcap-gui
