@@ -1,7 +1,7 @@
 add_library(ntcap
     TorusTopology.cpp
     Planes.cpp
-    VonNeumannNeighbourhood.cpp
+    VonNeumannN.cpp
 )
 
 set_target_properties(ntcap PROPERTIES LINKER_LANGUAGE CXX)

@@ -18,22 +18,14 @@ CellularCanvas::CellularCanvas(size_t fieldWidth,
               static_cast<int>(fieldHeight),
               QImage::Format_Indexed8)
 {
-    // Фиксируем размер виджета: 1 клетка = 1 пиксель.
     setFixedSize(static_cast<int>(fieldWidth),
                  static_cast<int>(fieldHeight));
 
-    // Цветовая таблица: индекс 0 → белый (мёртвая), индекс 1 → чёрный (живая).
-    QList<QRgb> colorTable;
-    colorTable.reserve(256);
-    colorTable.append(qRgb(255, 255, 255));  // 0 — dead
-    colorTable.append(qRgb(  0,   0,   0));  // 1 — alive
-    // На случай если в Planes окажутся значения > 1, заполним остаток чёрным.
-    for (int i = 2; i < 256; ++i) {
-        colorTable.append(qRgb(0, 0, 0));
-    }
-    m_image.setColorTable(colorTable);
+    // Цвета по умолчанию: 0 → белый, 1 → чёрный.
+    m_colorMap[0] = qRgb(255, 255, 255);
+    m_colorMap[1] = qRgb(  0,   0,   0);
 
-    // Начальная заливка — всё белое (мёртвое).
+    rebuildColorTable();
     m_image.fill(0);
 }
 
@@ -46,12 +38,26 @@ void CellularCanvas::setPlanes(const Planes* planes,
     m_planeIndex = planeIndex;
 }
 
-// ─── Обновление изображения и запрос перерисовки ────────────────────
+// ─── Цветовая карта ─────────────────────────────────────────────────
+
+void CellularCanvas::setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept
+{
+    m_colorMap = colorMap;
+    rebuildColorTable();
+}
+
+void CellularCanvas::setDefaultColor(QRgb color) noexcept
+{
+    m_defaultColor = color;
+    rebuildColorTable();
+}
+
+// ─── Слот: обновление ───────────────────────────────────────────────
 
 void CellularCanvas::refresh()
 {
     rebuildImage();
-    update();  // планирует paintEvent (асинхронно, не дублируется)
+    update();
 }
 
 // ─── paintEvent ─────────────────────────────────────────────────────
@@ -59,10 +65,23 @@ void CellularCanvas::refresh()
 void CellularCanvas::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
-
-    // Рисуем только ту область, которую Qt попросил обновить.
     const QRect dirtyRect = event->rect();
     painter.drawImage(dirtyRect.topLeft(), m_image, dirtyRect);
+}
+
+// ─── Построение цветовой таблицы QImage из QMap ─────────────────────
+
+void CellularCanvas::rebuildColorTable()
+{
+    QList<QRgb> colorTable;
+    colorTable.reserve(256);
+
+    for (int i = 0; i < 256; ++i) {
+        const auto state = static_cast<uint8_t>(i);
+        colorTable.append(m_colorMap.value(state, m_defaultColor));
+    }
+
+    m_image.setColorTable(colorTable);
 }
 
 // ─── Построение QImage из Planes ────────────────────────────────────
@@ -78,8 +97,6 @@ void CellularCanvas::rebuildImage()
     const int w = static_cast<int>(m_fieldWidth);
     const int h = static_cast<int>(m_fieldHeight);
 
-    // Копируем построчно, т.к. QImage может добавлять padding в конце scanline
-    // (bytesPerLine() ≥ width для Format_Indexed8).
     for (int y = 0; y < h; ++y) {
         uint8_t*       dst = m_image.scanLine(y);
         const uint8_t* src = plane.data() + static_cast<size_t>(y) * m_fieldWidth;
