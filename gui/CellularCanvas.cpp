@@ -136,6 +136,7 @@ void CellularCanvas::keyPressEvent(QKeyEvent* event)
 {
     constexpr qreal zoomFactor = 1.25;
 
+    // ── Зум: Ctrl+Plus / Ctrl+Minus ────────────────────
     if (event->modifiers() & Qt::ControlModifier) {
         const QPointF center(width() / 2.0, height() / 2.0);
 
@@ -151,6 +152,35 @@ void CellularCanvas::keyPressEvent(QKeyEvent* event)
             event->accept();
             return;
         }
+    }
+
+    // ── Панорамирование: стрелки ────────────────────────
+    // Сдвиг в пикселях виджета за одно нажатие.
+    constexpr qreal panPixels = 20.0;
+
+    switch (event->key()) {
+    case Qt::Key_Left:
+        m_offset.rx() -= panPixels / m_zoom;
+        update();
+        event->accept();
+        return;
+    case Qt::Key_Right:
+        m_offset.rx() += panPixels / m_zoom;
+        update();
+        event->accept();
+        return;
+    case Qt::Key_Up:
+        m_offset.ry() -= panPixels / m_zoom;
+        update();
+        event->accept();
+        return;
+    case Qt::Key_Down:
+        m_offset.ry() += panPixels / m_zoom;
+        update();
+        event->accept();
+        return;
+    default:
+        break;
     }
 
     QWidget::keyPressEvent(event);
