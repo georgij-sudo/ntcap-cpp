@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "VonNeumannNeighbourhood.h"
+#include "VonNeumannN.h"
 
 using namespace ntcap;
 

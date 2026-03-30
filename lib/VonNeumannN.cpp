@@ -1,4 +1,4 @@
-#include "VonNeumannNeighbourhood.h"
+#include "VonNeumannN.h"
 
 namespace ntcap {
 
