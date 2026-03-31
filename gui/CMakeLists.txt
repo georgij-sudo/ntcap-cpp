@@ -7,6 +7,7 @@ add_executable(ntcap-gui
     CellularCanvas.cpp
     AutomatonController.cpp
     KeyboardController.cpp
+    MouseController.cpp
 )
 
 target_link_libraries(ntcap-gui

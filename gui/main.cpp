@@ -2,6 +2,7 @@
 
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
+#include "MouseController.h"
 #include "AutomatonController.h"
 #include "Planes.h"
 #include "TorusTopology.h"
@@ -29,12 +30,12 @@ int main(int argc, char* argv[])
         TorusTopology(W, H),
         parityRule
     );
-    automaton.setInterval(16);
+    automaton.setInterval(10);
 
     // ── Канвас ──────────────────────────────────────────
     CellularCanvas canvas(W, H);
     canvas.setPlanes(automaton.planes(), 0);
-    canvas.setWindowTitle("Parity CA — wheel/Ctrl+±: zoom, arrows/drag: pan");
+    canvas.setWindowTitle("Parity CA");
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
@@ -42,8 +43,9 @@ int main(int argc, char* argv[])
     canvas.setColorMap(colorMap);
     canvas.setDefaultColor(qRgb(255, 0, 0));
 
-    // ── Клавиатура ──────────────────────────────────────
+    // ── Ввод ────────────────────────────────────────────
     KeyboardController keyboard(&canvas);
+    MouseController    mouse(&canvas);
 
     // ── Связи ───────────────────────────────────────────
     QObject::connect(&automaton, &AutomatonController::stepped,

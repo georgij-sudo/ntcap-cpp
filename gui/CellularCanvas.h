@@ -23,16 +23,15 @@ public:
     void setDefaultColor(QRgb color) noexcept;
 
     qreal zoom() const noexcept;
+    QPointF offset() const noexcept;
 
-    /** Шаг панорамирования в пикселях виджета. */
     void setPanStep(qreal pixels) noexcept;
-
-    /** Множитель зума за одно действие. */
     void setZoomFactor(qreal factor) noexcept;
 
 public slots:
     void refresh();
 
+    // ── Камера: клавиатура ──────────────────────────────
     void zoomIn();
     void zoomOut();
     void panLeft();
@@ -40,18 +39,20 @@ public slots:
     void panUp();
     void panDown();
 
+    // ── Камера: мышь ────────────────────────────────────
+    /** Зум с якорем в координатах виджета. */
+    void zoomAt(const QPointF& widgetAnchor, qreal newZoom);
+
+    /** Сдвиг камеры на delta пикселей виджета. */
+    void panByPixels(qreal dx, qreal dy);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
-    void wheelEvent(QWheelEvent* event) override;
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
     void rebuildColorTable();
     void rebuildImage();
     QPointF widgetToField(const QPointF& widgetPos) const;
-    void zoomAt(const QPointF& anchor, qreal newZoom);
 
     // ── Поле ────────────────────────────────────────────
     const size_t  m_fieldWidth;
@@ -69,10 +70,6 @@ private:
     QPointF m_offset     = {0.0, 0.0};
     qreal   m_panStep    = 20.0;
     qreal   m_zoomFactor = 1.25;
-
-    // ── Панорамирование мышью ───────────────────────────
-    bool    m_panning = false;
-    QPointF m_panLastPos;
 };
 
 } // namespace ntcap
