@@ -1,5 +1,6 @@
 #include <QApplication>
-#include <QVBoxLayout>
+
+#include "MainWindow.h"
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
 #include "MouseController.h"
@@ -27,21 +28,16 @@ int main(int argc, char* argv[])
         std::make_unique<TorusTopology>(W, H)
     );
 
-    // ── Симуляция (владеет Planes, работает в отдельном потоке) ──
+    // ── Симуляция ───────────────────────────────────────
     AutomatonController controller(
         std::move(initialPlanes),
         std::move(parity)
     );
 
-    // ── Окно с layout ───────────────────────────────────
-    QWidget window;
-    window.setWindowTitle("Parity CA (threaded)");
-    window.resize(800, 600);
+    // ── Главное окно ────────────────────────────────────
+    MainWindow window(W, H);
 
-    auto* layout = new QVBoxLayout(&window);
-    layout->setContentsMargins(0, 0, 0, 0);
-
-    auto* canvas = new CellularCanvas(W, H, &window);
+    CellularCanvas* canvas = window.canvas();
     canvas->setPlanes(controller.snapshot(), 0);
     canvas->setPlanesMutex(controller.snapshotMutex());
 
@@ -50,8 +46,6 @@ int main(int argc, char* argv[])
     colorMap[1] = qRgb(0,   200, 120);
     canvas->setColorMap(colorMap);
     canvas->setDefaultColor(qRgb(255, 0, 0));
-
-    layout->addWidget(canvas);
 
     // ── Ввод ────────────────────────────────────────────
     KeyboardController keyboard(canvas);
