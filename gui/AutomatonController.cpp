@@ -1,40 +1,30 @@
 #include "AutomatonController.h"
-#include "VonNeumannN.h"
-#include "Coord2D.h"
-#include "UCoord2D.h"
 #include <QMutexLocker>
 #include <cstring>
+#include <algorithm>
 
 namespace ntcap {
 
-// ─── Конструктор / деструктор ───────────────────────────────────────
-
 AutomatonController::AutomatonController(Planes planes,
-                                         TorusTopology topology,
-                                         TableRule<6> rule,
+                                         std::unique_ptr<Automaton> automaton,
                                          QObject* parent)
     : QObject(parent)
-    , m_current(std::make_unique<Planes>(std::move(planes)))
-    , m_tmp(std::make_unique<Planes>(m_current->width(),
-                                     m_current->height(),
-                                     1))
-    , m_snapshot(std::make_unique<Planes>(m_current->width(),
-                                         m_current->height(),
+    , m_current(std::move(planes))
+    , m_automaton(std::move(automaton))
+    , m_snapshot(std::make_unique<Planes>(m_current.width(),
+                                         m_current.height(),
                                          1))
-    , m_topology(std::move(topology))
-    , m_rule(std::move(rule))
 {
+    m_automaton->setCurrent(m_current);
     std::memcpy(m_snapshot->data(),
-                m_current->data(),
-                m_current->size());
+                m_current.data(),
+                m_current.size());
 }
 
 AutomatonController::~AutomatonController()
 {
     stop();
 }
-
-// ─── Геттеры ────────────────────────────────────────────────────────
 
 const Planes* AutomatonController::snapshot() const noexcept
 {
@@ -61,8 +51,6 @@ size_t AutomatonController::stepDelayMs() const noexcept
     return m_stepDelayMs.load(std::memory_order_relaxed);
 }
 
-// ─── Настройки (можно менять на лету) ───────────────────────────────
-
 void AutomatonController::setRenderInterval(size_t n)
 {
     m_renderInterval.store(n < 1 ? 1 : n, std::memory_order_relaxed);
@@ -78,11 +66,17 @@ void AutomatonController::setStepDelay(size_t ms)
     m_stepDelayMs.store(ms, std::memory_order_relaxed);
 }
 
-// ─── Управление потоком ─────────────────────────────────────────────
+void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
+{
+    m_automaton = std::move(automaton);
+    m_automaton->setCurrent(m_current);
+}
 
 void AutomatonController::start()
 {
     if (m_running.load())
+        return;
+    if (!m_automaton)
         return;
 
     m_running.store(true);
@@ -106,22 +100,15 @@ void AutomatonController::stop()
                this,      &AutomatonController::run);
 }
 
-// ─── Рабочий цикл (выполняется в m_thread) ─────────────────────────
-
 void AutomatonController::run()
 {
     while (m_running.load(std::memory_order_relaxed)) {
-
-        // 1. Задержка перед шагом.
         const size_t delay = m_stepDelayMs.load(std::memory_order_relaxed);
         if (delay > 0) {
-            // Разбиваем на короткие интервалы, чтобы быстро
-            // реагировать на stop() и на изменение delay.
             constexpr size_t kChunkMs = 50;
             size_t waited = 0;
             while (waited < delay
-                   && m_running.load(std::memory_order_relaxed))
-            {
+                   && m_running.load(std::memory_order_relaxed)) {
                 const size_t chunk = std::min(kChunkMs, delay - waited);
                 QThread::msleep(static_cast<unsigned long>(chunk));
                 waited += chunk;
@@ -130,34 +117,25 @@ void AutomatonController::run()
                 break;
         }
 
-        // 2. Вычислить следующее поколение.
-        step();
+        m_automaton->step();
+        m_automaton->commit();
 
-        // 3. Поменять буферы местами.
-        m_current.swap(m_tmp);
-
-        // 4. Инкремент поколения (всегда).
         const size_t gen =
             m_generation.fetch_add(1, std::memory_order_relaxed) + 1;
 
-        // 5. Решить, нужна ли отрисовка.
         if (!shouldRender(gen))
             continue;
 
-        // 6. Скопировать результат в снапшот.
         {
             QMutexLocker lock(&m_snapshotMutex);
             std::memcpy(m_snapshot->data(),
-                        m_current->data(),
-                        m_current->size());
+                        m_current.data(),
+                        m_current.size());
         }
 
-        // 7. Уведомить главный поток.
         emit stepped();
     }
 }
-
-// ─── Проверка: нужна ли отрисовка на этом шаге ─────────────────────
 
 bool AutomatonController::shouldRender(size_t gen) noexcept
 {
@@ -174,41 +152,6 @@ bool AutomatonController::shouldRender(size_t gen) noexcept
         return false;
 
     return true;
-}
-
-// ─── Один шаг симуляции ─────────────────────────────────────────────
-
-void AutomatonController::step()
-{
-    const size_t W = m_current->width();
-    const size_t H = m_current->height();
-
-    const uint8_t* cur  = m_current->data();
-    uint8_t*       next = m_tmp->data();
-
-    for (size_t y = 0; y < H; ++y) {
-        for (size_t x = 0; x < W; ++x) {
-            const auto px = static_cast<ptrdiff_t>(x);
-            const auto py = static_cast<ptrdiff_t>(y);
-
-            const UCoord2D nc = m_topology.normalize({px,     py - 1});
-            const UCoord2D ec = m_topology.normalize({px + 1, py    });
-            const UCoord2D sc = m_topology.normalize({px,     py + 1});
-            const UCoord2D wc = m_topology.normalize({px - 1, py    });
-
-            const size_t idx = y * W + x;
-
-            const VonNeumannN neighborhood = VonNeumannNBuilder()
-                .center(cur[idx])
-                .north (cur[nc.y * W + nc.x])
-                .east  (cur[ec.y * W + ec.x])
-                .south (cur[sc.y * W + sc.x])
-                .west  (cur[wc.y * W + wc.x])
-                .build();
-
-            next[idx] = m_rule(neighborhood.count());
-        }
-    }
 }
 
 } // namespace ntcap

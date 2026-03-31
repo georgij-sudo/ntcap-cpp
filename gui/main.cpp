@@ -1,18 +1,13 @@
 #include <QApplication>
-
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
 #include "MouseController.h"
 #include "AutomatonController.h"
+#include "Parity.h"
 #include "Planes.h"
 #include "TorusTopology.h"
-#include "TableRule.h"
 
 using namespace ntcap;
-
-static constexpr TableRule<6> parityRule(
-    0, 1, 0, 1, 0, 1
-);
 
 int main(int argc, char* argv[])
 {
@@ -25,17 +20,22 @@ int main(int argc, char* argv[])
     Planes initialPlanes(W, H, 1);
     initialPlanes.data()[H / 2 * W + W / 2] = 1;
 
+    // ── Автомат (Parity + тор) ──────────────────────────
+    auto parity = std::make_unique<Parity>(
+        initialPlanes,                              // ещё не перемещён
+        std::make_unique<TorusTopology>(W, H)
+    );
+
     // ── Симуляция (владеет Planes, работает в отдельном потоке) ──
-    AutomatonController automaton(
+    AutomatonController controller(
         std::move(initialPlanes),
-        TorusTopology(W, H),
-        parityRule
+        std::move(parity)
     );
 
     // ── Канвас ──────────────────────────────────────────
     CellularCanvas canvas(W, H);
-    canvas.setPlanes(automaton.snapshot(), 0);
-    canvas.setPlanesMutex(automaton.snapshotMutex());
+    canvas.setPlanes(controller.snapshot(), 0);
+    canvas.setPlanesMutex(controller.snapshotMutex());
     canvas.setWindowTitle("Parity CA (threaded)");
 
     QMap<uint8_t, QRgb> colorMap;
@@ -49,15 +49,15 @@ int main(int argc, char* argv[])
     MouseController    mouse(&canvas);
 
     // ── Связи ───────────────────────────────────────────
-    QObject::connect(&automaton, &AutomatonController::stepped,
-                     &canvas,    &CellularCanvas::refresh,
+    QObject::connect(&controller, &AutomatonController::stepped,
+                     &canvas,     &CellularCanvas::refresh,
                      Qt::QueuedConnection);
 
     canvas.show();
-    automaton.start();
+    controller.start();
 
     const int result = app.exec();
 
-    automaton.stop();
+    controller.stop();
     return result;
 }
