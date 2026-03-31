@@ -1,6 +1,7 @@
 #include <QApplication>
 
 #include "CellularCanvas.h"
+#include "KeyboardController.h"
 #include "AutomatonController.h"
 #include "Planes.h"
 #include "TorusTopology.h"
@@ -22,17 +23,18 @@ int main(int argc, char* argv[])
     Planes initialPlanes(W, H, 2);
     initialPlanes.data()[H / 2 * W + W / 2] = 1;
 
-    AutomatonController controller(
+    // ── Симуляция ───────────────────────────────────────
+    AutomatonController automaton(
         std::move(initialPlanes),
         TorusTopology(W, H),
         parityRule
     );
-    controller.setInterval(16);
+    automaton.setInterval(16);
 
-    // ── Канвас: фиксированный размер виджета ────────────
+    // ── Канвас ──────────────────────────────────────────
     CellularCanvas canvas(W, H);
-    canvas.setPlanes(controller.planes(), 0);
-    canvas.setWindowTitle("Parity CA — scroll to zoom, drag to pan");
+    canvas.setPlanes(automaton.planes(), 0);
+    canvas.setWindowTitle("Parity CA — wheel/Ctrl+±: zoom, arrows/drag: pan");
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
@@ -40,11 +42,15 @@ int main(int argc, char* argv[])
     canvas.setColorMap(colorMap);
     canvas.setDefaultColor(qRgb(255, 0, 0));
 
-    QObject::connect(&controller, &AutomatonController::stepped,
-                     &canvas,     &CellularCanvas::refresh);
+    // ── Клавиатура ──────────────────────────────────────
+    KeyboardController keyboard(&canvas);
+
+    // ── Связи ───────────────────────────────────────────
+    QObject::connect(&automaton, &AutomatonController::stepped,
+                     &canvas,    &CellularCanvas::refresh);
 
     canvas.show();
-    controller.start();
+    automaton.start();
 
     return app.exec();
 }

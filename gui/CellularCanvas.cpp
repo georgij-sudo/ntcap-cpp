@@ -3,7 +3,6 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QWheelEvent>
-#include <QKeyEvent>
 #include <QMouseEvent>
 #include <cstring>
 #include <cmath>
@@ -26,13 +25,9 @@ CellularCanvas::CellularCanvas(size_t fieldWidth,
     setFixedSize(static_cast<int>(fieldWidth),
                  static_cast<int>(fieldHeight));
 
-    // Фокус для приёма клавиатурных событий.
     setFocusPolicy(Qt::StrongFocus);
-
-    // Отслеживание мыши для курсора (опционально).
     setMouseTracking(true);
 
-    // Цвета по умолчанию.
     m_colorMap[0] = qRgb(255, 255, 255);
     m_colorMap[1] = qRgb(  0,   0,   0);
 
@@ -63,18 +58,21 @@ void CellularCanvas::setDefaultColor(QRgb color) noexcept
     rebuildColorTable();
 }
 
-// ─── Зум ────────────────────────────────────────────────────────────
+// ─── Геттеры / сеттеры камеры ───────────────────────────────────────
 
 qreal CellularCanvas::zoom() const noexcept
 {
     return m_zoom;
 }
 
-void CellularCanvas::setZoom(qreal zoom)
+void CellularCanvas::setPanStep(qreal pixels) noexcept
 {
-    const QPointF center(width() / 2.0, height() / 2.0);
-    zoomAt(center, zoom);
-    update();
+    m_panStep = pixels;
+}
+
+void CellularCanvas::setZoomFactor(qreal factor) noexcept
+{
+    m_zoomFactor = factor;
 }
 
 // ─── Слот: обновление ───────────────────────────────────────────────
@@ -85,38 +83,73 @@ void CellularCanvas::refresh()
     update();
 }
 
+// ─── Публичные слоты камеры ─────────────────────────────────────────
+
+void CellularCanvas::zoomIn()
+{
+    const QPointF center(width() / 2.0, height() / 2.0);
+    zoomAt(center, m_zoom * m_zoomFactor);
+    update();
+}
+
+void CellularCanvas::zoomOut()
+{
+    const QPointF center(width() / 2.0, height() / 2.0);
+    zoomAt(center, m_zoom / m_zoomFactor);
+    update();
+}
+
+void CellularCanvas::panLeft()
+{
+    m_offset.rx() -= m_panStep / m_zoom;
+    update();
+}
+
+void CellularCanvas::panRight()
+{
+    m_offset.rx() += m_panStep / m_zoom;
+    update();
+}
+
+void CellularCanvas::panUp()
+{
+    m_offset.ry() -= m_panStep / m_zoom;
+    update();
+}
+
+void CellularCanvas::panDown()
+{
+    m_offset.ry() += m_panStep / m_zoom;
+    update();
+}
+
 // ─── paintEvent ─────────────────────────────────────────────────────
 
 void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
 
-    // Фон за пределами поля.
     painter.fillRect(rect(), QColor(40, 40, 40));
 
-    // ── Видимая область поля (в координатах поля) ───────
     const QPointF topLeftField     = widgetToField({0.0, 0.0});
     const QPointF bottomRightField = widgetToField({
         static_cast<qreal>(width()),
         static_cast<qreal>(height())
     });
 
-    // Обрезаем до границ поля [0, fieldWidth) × [0, fieldHeight).
     const qreal srcLeft   = std::max(topLeftField.x(),     0.0);
     const qreal srcTop    = std::max(topLeftField.y(),     0.0);
     const qreal srcRight  = std::min(bottomRightField.x(), static_cast<qreal>(m_fieldWidth));
     const qreal srcBottom = std::min(bottomRightField.y(), static_cast<qreal>(m_fieldHeight));
 
     if (srcLeft >= srcRight || srcTop >= srcBottom) {
-        return;  // Поле полностью за пределами виджета.
+        return;
     }
 
     const QRectF sourceRect(srcLeft, srcTop,
                             srcRight - srcLeft,
                             srcBottom - srcTop);
 
-    // ── Куда рисуем (в координатах виджета) ─────────────
-    // fieldToWidget: widgetPos = (fieldPos − offset) × zoom
     const QRectF targetRect(
         (srcLeft   - m_offset.x()) * m_zoom,
         (srcTop    - m_offset.y()) * m_zoom,
@@ -124,9 +157,7 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
         (srcBottom - srcTop)       * m_zoom
     );
 
-    // Без сглаживания — чёткие клетки при увеличении.
     painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
-
     painter.drawImage(targetRect, m_image, sourceRect);
 }
 
@@ -134,7 +165,7 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 
 void CellularCanvas::wheelEvent(QWheelEvent* event)
 {
-    constexpr qreal zoomFactor = 1.1;
+    constexpr qreal wheelZoomBase = 1.1;
 
     const int degrees = event->angleDelta().y();
     if (degrees == 0) {
@@ -142,71 +173,13 @@ void CellularCanvas::wheelEvent(QWheelEvent* event)
         return;
     }
 
-    // Количество «щелчков» (обычно 120 единиц = 1 щелчок).
     const qreal steps = degrees / 120.0;
-    const qreal factor = std::pow(zoomFactor, steps);
-    const qreal newZoom = m_zoom * factor;
+    const qreal factor = std::pow(wheelZoomBase, steps);
 
-    zoomAt(event->position(), newZoom);
+    zoomAt(event->position(), m_zoom * factor);
     update();
 
     event->accept();
-}
-
-// ─── keyPressEvent: Ctrl+Plus / Ctrl+Minus ──────────────────────────
-
-void CellularCanvas::keyPressEvent(QKeyEvent* event)
-{
-    constexpr qreal zoomFactor = 1.25;
-
-    // ── Зум: Ctrl+Plus / Ctrl+Minus ────────────────────
-    if (event->modifiers() & Qt::ControlModifier) {
-        const QPointF center(width() / 2.0, height() / 2.0);
-
-        if (event->key() == Qt::Key_Plus || event->key() == Qt::Key_Equal) {
-            zoomAt(center, m_zoom * zoomFactor);
-            update();
-            event->accept();
-            return;
-        }
-        if (event->key() == Qt::Key_Minus) {
-            zoomAt(center, m_zoom / zoomFactor);
-            update();
-            event->accept();
-            return;
-        }
-    }
-
-    // ── Панорамирование: стрелки ────────────────────────
-    // Сдвиг в пикселях виджета за одно нажатие.
-    constexpr qreal panPixels = 20.0;
-
-    switch (event->key()) {
-    case Qt::Key_Left:
-        m_offset.rx() -= panPixels / m_zoom;
-        update();
-        event->accept();
-        return;
-    case Qt::Key_Right:
-        m_offset.rx() += panPixels / m_zoom;
-        update();
-        event->accept();
-        return;
-    case Qt::Key_Up:
-        m_offset.ry() -= panPixels / m_zoom;
-        update();
-        event->accept();
-        return;
-    case Qt::Key_Down:
-        m_offset.ry() += panPixels / m_zoom;
-        update();
-        event->accept();
-        return;
-    default:
-        break;
-    }
-
-    QWidget::keyPressEvent(event);
 }
 
 // ─── Панорамирование мышью (ЛКМ) ───────────────────────────────────
@@ -227,11 +200,8 @@ void CellularCanvas::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_panning) {
         const QPointF delta = event->position() - m_panLastPos;
-
-        // Сдвиг в координатах поля = сдвиг в пикселях / zoom.
         m_offset.rx() -= delta.x() / m_zoom;
         m_offset.ry() -= delta.y() / m_zoom;
-
         m_panLastPos = event->position();
         update();
         event->accept();
@@ -255,23 +225,14 @@ void CellularCanvas::mouseReleaseEvent(QMouseEvent* event)
 
 QPointF CellularCanvas::widgetToField(const QPointF& widgetPos) const
 {
-    // widgetPos = (fieldPos - offset) * zoom
-    // fieldPos  = widgetPos / zoom + offset
     return QPointF(widgetPos.x() / m_zoom + m_offset.x(),
                    widgetPos.y() / m_zoom + m_offset.y());
 }
 
 void CellularCanvas::zoomAt(const QPointF& anchor, qreal newZoom)
 {
-    // Точка поля под якорем до зума.
     const QPointF fieldAnchor = widgetToField(anchor);
-
     m_zoom = newZoom;
-
-    // После смены zoom пересчитываем offset так, чтобы
-    // fieldAnchor осталась под тем же пикселем виджета.
-    // anchor = (fieldAnchor - newOffset) * newZoom
-    // newOffset = fieldAnchor - anchor / newZoom
     m_offset.setX(fieldAnchor.x() - anchor.x() / m_zoom);
     m_offset.setY(fieldAnchor.y() - anchor.y() / m_zoom);
 }
