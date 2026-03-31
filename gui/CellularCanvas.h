@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QImage>
 #include <QMap>
+#include <QMutex>
 #include <QRgb>
 #include <QPointF>
 
@@ -19,6 +20,13 @@ public:
                             QWidget* parent = nullptr);
 
     void setPlanes(const Planes* planes, size_t planeIndex = 0) noexcept;
+
+    /**
+     * Задаёт мьютекс, который нужно блокировать при чтении Planes.
+     * nullptr = без блокировки (однопоточный режим).
+     */
+    void setPlanesMutex(QMutex* mutex) noexcept;
+
     void setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept;
     void setDefaultColor(QRgb color) noexcept;
 
@@ -31,7 +39,6 @@ public:
 public slots:
     void refresh();
 
-    // ── Камера: клавиатура ──────────────────────────────
     void zoomIn();
     void zoomOut();
     void panLeft();
@@ -39,11 +46,7 @@ public slots:
     void panUp();
     void panDown();
 
-    // ── Камера: мышь ────────────────────────────────────
-    /** Зум с якорем в координатах виджета. */
     void zoomAt(const QPointF& widgetAnchor, qreal newZoom);
-
-    /** Сдвиг камеры на delta пикселей виджета. */
     void panByPixels(qreal dx, qreal dy);
 
 protected:
@@ -57,8 +60,9 @@ private:
     // ── Поле ────────────────────────────────────────────
     const size_t  m_fieldWidth;
     const size_t  m_fieldHeight;
-    const Planes* m_planes     = nullptr;
-    size_t        m_planeIndex = 0;
+    const Planes* m_planes      = nullptr;
+    size_t        m_planeIndex  = 0;
+    QMutex*       m_planesMutex = nullptr;
 
     // ── Цвета ───────────────────────────────────────────
     QMap<uint8_t, QRgb> m_colorMap;

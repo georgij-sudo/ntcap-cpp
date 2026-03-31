@@ -21,21 +21,22 @@ int main(int argc, char* argv[])
     constexpr size_t W = 400;
     constexpr size_t H = 400;
 
-    Planes initialPlanes(W, H, 2);
+    // Начальное состояние: одна плоскость.
+    Planes initialPlanes(W, H, 1);
     initialPlanes.data()[H / 2 * W + W / 2] = 1;
 
-    // ── Симуляция ───────────────────────────────────────
+    // ── Симуляция (владеет Planes, работает в отдельном потоке) ──
     AutomatonController automaton(
         std::move(initialPlanes),
         TorusTopology(W, H),
         parityRule
     );
-    automaton.setInterval(10);
 
     // ── Канвас ──────────────────────────────────────────
     CellularCanvas canvas(W, H);
-    canvas.setPlanes(automaton.planes(), 0);
-    canvas.setWindowTitle("Parity CA");
+    canvas.setPlanes(automaton.snapshot(), 0);
+    canvas.setPlanesMutex(automaton.snapshotMutex());
+    canvas.setWindowTitle("Parity CA (threaded)");
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
@@ -49,10 +50,14 @@ int main(int argc, char* argv[])
 
     // ── Связи ───────────────────────────────────────────
     QObject::connect(&automaton, &AutomatonController::stepped,
-                     &canvas,    &CellularCanvas::refresh);
+                     &canvas,    &CellularCanvas::refresh,
+                     Qt::QueuedConnection);
 
     canvas.show();
     automaton.start();
 
-    return app.exec();
+    const int result = app.exec();
+
+    automaton.stop();
+    return result;
 }
