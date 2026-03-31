@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
         TorusTopology(W, H),
         parityRule
     );
+    automaton.setRenderInterval(8);
 
     // ── Канвас ──────────────────────────────────────────
     CellularCanvas canvas(W, H);
