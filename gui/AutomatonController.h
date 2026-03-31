@@ -24,23 +24,21 @@ public:
     size_t        generation() const noexcept;
 
     size_t renderInterval() const noexcept;
+    size_t stepDelayMs() const noexcept;
 
 public slots:
     void start();
     void stop();
 
-    /**
-     * Постоянная настройка: отрисовывать каждый n-й шаг.
-     * Можно менять на лету. n == 0 трактуется как 1.
-     */
     void setRenderInterval(size_t n);
+    void skipSteps(size_t n);
 
     /**
-     * Разовая команда: пропустить следующие n шагов без отрисовки.
-     * Вызовы аддитивны: skipSteps(5) + skipSteps(3) = пропустить 8.
-     * Пока счётчик > 0, renderInterval не учитывается.
+     * Задержка между шагами в миллисекундах.
+     * 0 = без задержки (максимальная скорость).
+     * Можно менять на лету.
      */
-    void skipSteps(size_t n);
+    void setStepDelay(size_t ms);
 
 signals:
     void stepped();
@@ -70,6 +68,9 @@ private:
     // ── Пропуск отрисовки ───────────────────────────────
     std::atomic<size_t> m_renderInterval{1};
     std::atomic<size_t> m_skipRemaining{0};
+
+    // ── Задержка между шагами ───────────────────────────
+    std::atomic<size_t> m_stepDelayMs{0};
 };
 
 } // namespace ntcap
