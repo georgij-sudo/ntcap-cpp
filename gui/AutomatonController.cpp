@@ -56,7 +56,12 @@ size_t AutomatonController::renderInterval() const noexcept
     return m_renderInterval.load(std::memory_order_relaxed);
 }
 
-// ─── Пропуск отрисовки ─────────────────────────────────────────────
+size_t AutomatonController::stepDelayMs() const noexcept
+{
+    return m_stepDelayMs.load(std::memory_order_relaxed);
+}
+
+// ─── Настройки (можно менять на лету) ───────────────────────────────
 
 void AutomatonController::setRenderInterval(size_t n)
 {
@@ -66,6 +71,11 @@ void AutomatonController::setRenderInterval(size_t n)
 void AutomatonController::skipSteps(size_t n)
 {
     m_skipRemaining.fetch_add(n, std::memory_order_relaxed);
+}
+
+void AutomatonController::setStepDelay(size_t ms)
+{
+    m_stepDelayMs.store(ms, std::memory_order_relaxed);
 }
 
 // ─── Управление потоком ─────────────────────────────────────────────
@@ -101,21 +111,40 @@ void AutomatonController::stop()
 void AutomatonController::run()
 {
     while (m_running.load(std::memory_order_relaxed)) {
-        // 1. Вычислить следующее поколение.
+
+        // 1. Задержка перед шагом.
+        const size_t delay = m_stepDelayMs.load(std::memory_order_relaxed);
+        if (delay > 0) {
+            // Разбиваем на короткие интервалы, чтобы быстро
+            // реагировать на stop() и на изменение delay.
+            constexpr size_t kChunkMs = 50;
+            size_t waited = 0;
+            while (waited < delay
+                   && m_running.load(std::memory_order_relaxed))
+            {
+                const size_t chunk = std::min(kChunkMs, delay - waited);
+                QThread::msleep(static_cast<unsigned long>(chunk));
+                waited += chunk;
+            }
+            if (!m_running.load(std::memory_order_relaxed))
+                break;
+        }
+
+        // 2. Вычислить следующее поколение.
         step();
 
-        // 2. Поменять буферы местами.
+        // 3. Поменять буферы местами.
         m_current.swap(m_tmp);
 
-        // 3. Инкремент поколения (всегда, даже при пропуске).
+        // 4. Инкремент поколения (всегда).
         const size_t gen =
             m_generation.fetch_add(1, std::memory_order_relaxed) + 1;
 
-        // 4. Решить, нужна ли отрисовка.
+        // 5. Решить, нужна ли отрисовка.
         if (!shouldRender(gen))
             continue;
 
-        // 5. Скопировать результат в снапшот.
+        // 6. Скопировать результат в снапшот.
         {
             QMutexLocker lock(&m_snapshotMutex);
             std::memcpy(m_snapshot->data(),
@@ -123,7 +152,7 @@ void AutomatonController::run()
                         m_current->size());
         }
 
-        // 6. Уведомить главный поток.
+        // 7. Уведомить главный поток.
         emit stepped();
     }
 }
@@ -132,18 +161,14 @@ void AutomatonController::run()
 
 bool AutomatonController::shouldRender(size_t gen) noexcept
 {
-    // Приоритет 1: разовый пропуск (skipSteps).
-    // CAS-цикл: атомарно декрементируем, если > 0.
     size_t skip = m_skipRemaining.load(std::memory_order_relaxed);
     while (skip > 0) {
         if (m_skipRemaining.compare_exchange_weak(
                 skip, skip - 1, std::memory_order_relaxed)) {
-            return false;          // пропускаем этот шаг
+            return false;
         }
-        // skip обновлён compare_exchange_weak при неудаче — повторяем
     }
 
-    // Приоритет 2: постоянный интервал.
     const size_t interval = m_renderInterval.load(std::memory_order_relaxed);
     if (interval > 1 && (gen % interval) != 0)
         return false;
