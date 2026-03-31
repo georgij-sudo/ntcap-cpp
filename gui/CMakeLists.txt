@@ -8,6 +8,8 @@ add_executable(ntcap-gui
     AutomatonController.cpp
     KeyboardController.cpp
     MouseController.cpp
+    Automaton.cpp
+    Parity.cpp
 )
 
 target_link_libraries(ntcap-gui
