@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QVBoxLayout>
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
 #include "MouseController.h"
@@ -22,7 +23,7 @@ int main(int argc, char* argv[])
 
     // ── Автомат (Parity + тор) ──────────────────────────
     auto parity = std::make_unique<Parity>(
-        initialPlanes,                              // ещё не перемещён
+        initialPlanes,
         std::make_unique<TorusTopology>(W, H)
     );
 
@@ -32,32 +33,40 @@ int main(int argc, char* argv[])
         std::move(parity)
     );
 
-    // ── Канвас ──────────────────────────────────────────
-    CellularCanvas canvas(W, H);
-    canvas.setPlanes(controller.snapshot(), 0);
-    canvas.setPlanesMutex(controller.snapshotMutex());
-    canvas.setWindowTitle("Parity CA (threaded)");
+    // ── Окно с layout ───────────────────────────────────
+    QWidget window;
+    window.setWindowTitle("Parity CA (threaded)");
+    window.resize(800, 600);
+
+    auto* layout = new QVBoxLayout(&window);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    auto* canvas = new CellularCanvas(W, H, &window);
+    canvas->setPlanes(controller.snapshot(), 0);
+    canvas->setPlanesMutex(controller.snapshotMutex());
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
     colorMap[1] = qRgb(0,   200, 120);
-    canvas.setColorMap(colorMap);
-    canvas.setDefaultColor(qRgb(255, 0, 0));
+    canvas->setColorMap(colorMap);
+    canvas->setDefaultColor(qRgb(255, 0, 0));
+
+    layout->addWidget(canvas);
 
     // ── Ввод ────────────────────────────────────────────
-    KeyboardController keyboard(&canvas);
-    MouseController    mouse(&canvas);
+    KeyboardController keyboard(canvas);
+    MouseController    mouse(canvas);
 
     // ── Связи ───────────────────────────────────────────
     QObject::connect(&controller, &AutomatonController::stepped,
-                     &canvas,     &CellularCanvas::refresh,
+                     canvas,      &CellularCanvas::refresh,
                      Qt::QueuedConnection);
 
-    canvas.show();
+    window.show();
     controller.start();
 
     const int result = app.exec();
-
     controller.stop();
+
     return result;
 }
