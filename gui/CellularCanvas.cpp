@@ -2,8 +2,6 @@
 
 #include <QPainter>
 #include <QPaintEvent>
-#include <QWheelEvent>
-#include <QMouseEvent>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -65,6 +63,11 @@ qreal CellularCanvas::zoom() const noexcept
     return m_zoom;
 }
 
+QPointF CellularCanvas::offset() const noexcept
+{
+    return m_offset;
+}
+
 void CellularCanvas::setPanStep(qreal pixels) noexcept
 {
     m_panStep = pixels;
@@ -83,43 +86,55 @@ void CellularCanvas::refresh()
     update();
 }
 
-// ─── Публичные слоты камеры ─────────────────────────────────────────
+// ─── Камера: клавиатура ─────────────────────────────────────────────
 
 void CellularCanvas::zoomIn()
 {
     const QPointF center(width() / 2.0, height() / 2.0);
     zoomAt(center, m_zoom * m_zoomFactor);
-    update();
 }
 
 void CellularCanvas::zoomOut()
 {
     const QPointF center(width() / 2.0, height() / 2.0);
     zoomAt(center, m_zoom / m_zoomFactor);
-    update();
 }
 
 void CellularCanvas::panLeft()
 {
-    m_offset.rx() -= m_panStep / m_zoom;
-    update();
+    panByPixels(m_panStep, 0.0);
 }
 
 void CellularCanvas::panRight()
 {
-    m_offset.rx() += m_panStep / m_zoom;
-    update();
+    panByPixels(-m_panStep, 0.0);
 }
 
 void CellularCanvas::panUp()
 {
-    m_offset.ry() -= m_panStep / m_zoom;
-    update();
+    panByPixels(0.0, m_panStep);
 }
 
 void CellularCanvas::panDown()
 {
-    m_offset.ry() += m_panStep / m_zoom;
+    panByPixels(0.0, -m_panStep);
+}
+
+// ─── Камера: мышь ───────────────────────────────────────────────────
+
+void CellularCanvas::zoomAt(const QPointF& widgetAnchor, qreal newZoom)
+{
+    const QPointF fieldAnchor = widgetToField(widgetAnchor);
+    m_zoom = newZoom;
+    m_offset.setX(fieldAnchor.x() - widgetAnchor.x() / m_zoom);
+    m_offset.setY(fieldAnchor.y() - widgetAnchor.y() / m_zoom);
+    update();
+}
+
+void CellularCanvas::panByPixels(qreal dx, qreal dy)
+{
+    m_offset.rx() -= dx / m_zoom;
+    m_offset.ry() -= dy / m_zoom;
     update();
 }
 
@@ -161,80 +176,12 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
     painter.drawImage(targetRect, m_image, sourceRect);
 }
 
-// ─── wheelEvent: зум к курсору ──────────────────────────────────────
-
-void CellularCanvas::wheelEvent(QWheelEvent* event)
-{
-    constexpr qreal wheelZoomBase = 1.1;
-
-    const int degrees = event->angleDelta().y();
-    if (degrees == 0) {
-        event->ignore();
-        return;
-    }
-
-    const qreal steps = degrees / 120.0;
-    const qreal factor = std::pow(wheelZoomBase, steps);
-
-    zoomAt(event->position(), m_zoom * factor);
-    update();
-
-    event->accept();
-}
-
-// ─── Панорамирование мышью (ЛКМ) ───────────────────────────────────
-
-void CellularCanvas::mousePressEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton) {
-        m_panning    = true;
-        m_panLastPos = event->position();
-        setCursor(Qt::ClosedHandCursor);
-        event->accept();
-        return;
-    }
-    QWidget::mousePressEvent(event);
-}
-
-void CellularCanvas::mouseMoveEvent(QMouseEvent* event)
-{
-    if (m_panning) {
-        const QPointF delta = event->position() - m_panLastPos;
-        m_offset.rx() -= delta.x() / m_zoom;
-        m_offset.ry() -= delta.y() / m_zoom;
-        m_panLastPos = event->position();
-        update();
-        event->accept();
-        return;
-    }
-    QWidget::mouseMoveEvent(event);
-}
-
-void CellularCanvas::mouseReleaseEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton && m_panning) {
-        m_panning = false;
-        setCursor(Qt::ArrowCursor);
-        event->accept();
-        return;
-    }
-    QWidget::mouseReleaseEvent(event);
-}
-
 // ─── Приватные методы ───────────────────────────────────────────────
 
 QPointF CellularCanvas::widgetToField(const QPointF& widgetPos) const
 {
     return QPointF(widgetPos.x() / m_zoom + m_offset.x(),
                    widgetPos.y() / m_zoom + m_offset.y());
-}
-
-void CellularCanvas::zoomAt(const QPointF& anchor, qreal newZoom)
-{
-    const QPointF fieldAnchor = widgetToField(anchor);
-    m_zoom = newZoom;
-    m_offset.setX(fieldAnchor.x() - anchor.x() / m_zoom);
-    m_offset.setY(fieldAnchor.y() - anchor.y() / m_zoom);
 }
 
 void CellularCanvas::rebuildColorTable()
