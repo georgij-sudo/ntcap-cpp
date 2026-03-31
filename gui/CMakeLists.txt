@@ -10,6 +10,7 @@ add_executable(ntcap-gui
     MouseController.cpp
     Automaton.cpp
     Parity.cpp
+    MainWindow.cpp
 )
 
 target_link_libraries(ntcap-gui
