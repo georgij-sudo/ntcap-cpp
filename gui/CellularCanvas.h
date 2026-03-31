@@ -22,19 +22,27 @@ public:
     void setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept;
     void setDefaultColor(QRgb color) noexcept;
 
-    /** Текущий масштаб. */
     qreal zoom() const noexcept;
 
-    /** Программная установка масштаба относительно центра виджета. */
-    void setZoom(qreal zoom);
+    /** Шаг панорамирования в пикселях виджета. */
+    void setPanStep(qreal pixels) noexcept;
+
+    /** Множитель зума за одно действие. */
+    void setZoomFactor(qreal factor) noexcept;
 
 public slots:
     void refresh();
 
+    void zoomIn();
+    void zoomOut();
+    void panLeft();
+    void panRight();
+    void panUp();
+    void panDown();
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
-    void keyPressEvent(QKeyEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
@@ -42,11 +50,7 @@ protected:
 private:
     void rebuildColorTable();
     void rebuildImage();
-
-    /** Преобразует координаты виджета → координаты поля. */
     QPointF widgetToField(const QPointF& widgetPos) const;
-
-    /** Зум с якорной точкой (в координатах виджета). */
     void zoomAt(const QPointF& anchor, qreal newZoom);
 
     // ── Поле ────────────────────────────────────────────
@@ -61,14 +65,10 @@ private:
     QImage              m_image;
 
     // ── Вьюпорт ─────────────────────────────────────────
-    /** Масштаб: 1.0 = 1 клетка = 1 пиксель. */
-    qreal   m_zoom = 1.0;
-
-    /**
-     * Смещение: координата поля, соответствующая
-     * левому верхнему углу виджета.
-     */
-    QPointF m_offset{0.0, 0.0};
+    qreal   m_zoom       = 1.0;
+    QPointF m_offset     = {0.0, 0.0};
+    qreal   m_panStep    = 20.0;
+    qreal   m_zoomFactor = 1.25;
 
     // ── Панорамирование мышью ───────────────────────────
     bool    m_panning = false;
