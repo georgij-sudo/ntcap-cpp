@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QMutexLocker>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -40,6 +41,11 @@ void CellularCanvas::setPlanes(const Planes* planes,
 {
     m_planes     = planes;
     m_planeIndex = planeIndex;
+}
+
+void CellularCanvas::setPlanesMutex(QMutex* mutex) noexcept
+{
+    m_planesMutex = mutex;
 }
 
 // ─── Цветовая карта ─────────────────────────────────────────────────
@@ -203,6 +209,10 @@ void CellularCanvas::rebuildImage()
         m_image.fill(0);
         return;
     }
+
+    // Блокируем мьютекс на время чтения из Planes.
+    // Если мьютекс не задан — читаем без блокировки.
+    QMutexLocker lock(m_planesMutex);
 
     const std::span<const uint8_t> plane = m_planes->view(m_planeIndex);
     const int w = static_cast<int>(m_fieldWidth);

@@ -3,46 +3,127 @@
 #include "Coord2D.h"
 #include "UCoord2D.h"
 
+#include <QMutexLocker>
 #include <cstring>
 
 namespace ntcap {
 
-// ─── Конструктор ────────────────────────────────────────────────────
+// ─── Конструктор / деструктор ───────────────────────────────────────
 
 AutomatonController::AutomatonController(Planes planes,
                                          TorusTopology topology,
                                          TableRule<6> rule,
                                          QObject* parent)
     : QObject(parent)
-    , m_planes(std::move(planes))
+    , m_current(std::make_unique<Planes>(std::move(planes)))
+    , m_tmp(std::make_unique<Planes>(m_current->width(),
+                                     m_current->height(),
+                                     1))
+    , m_snapshot(std::make_unique<Planes>(m_current->width(),
+                                         m_current->height(),
+                                         1))
     , m_topology(std::move(topology))
     , m_rule(std::move(rule))
 {
-    connect(&m_timer, &QTimer::timeout,
-            this,     &AutomatonController::step);
+    // Начальный снапшот = начальное состояние.
+    std::memcpy(m_snapshot->data(),
+                m_current->data(),
+                m_current->size());
+}
+
+AutomatonController::~AutomatonController()
+{
+    stop();
 }
 
 // ─── Геттеры ────────────────────────────────────────────────────────
 
-const Planes* AutomatonController::planes() const noexcept
+const Planes* AutomatonController::snapshot() const noexcept
 {
-    return &m_planes;
+    return m_snapshot.get();
+}
+
+QMutex* AutomatonController::snapshotMutex() noexcept
+{
+    return &m_snapshotMutex;
 }
 
 size_t AutomatonController::generation() const noexcept
 {
-    return m_generation;
+    return m_generation.load(std::memory_order_relaxed);
+}
+
+// ─── Управление потоком ─────────────────────────────────────────────
+
+void AutomatonController::start()
+{
+    if (m_running.load()) {
+        return;
+    }
+
+    m_running.store(true);
+
+    // Лямбда будет выполняться в m_thread.
+    QObject::connect(&m_thread, &QThread::started,
+                     this,      &AutomatonController::run,
+                     Qt::DirectConnection);
+
+    // Перемещаем *this* НЕ в поток — сигнал stepped()
+    // должен быть queued в главный поток.
+    // run() вызывается через DirectConnection из m_thread.
+    m_thread.start();
+}
+
+void AutomatonController::stop()
+{
+    if (!m_running.load()) {
+        return;
+    }
+
+    m_running.store(false);
+    m_thread.quit();
+    m_thread.wait();
+
+    disconnect(&m_thread, &QThread::started,
+               this,      &AutomatonController::run);
+}
+
+// ─── Рабочий цикл (выполняется в m_thread) ─────────────────────────
+
+void AutomatonController::run()
+{
+    while (m_running.load(std::memory_order_relaxed)) {
+
+        // 1. Вычислить следующее поколение: m_current → m_tmp.
+        step();
+
+        // 2. Поменять буферы местами.
+        m_current.swap(m_tmp);
+
+        // 3. Скопировать результат в снапшот.
+        {
+            QMutexLocker lock(&m_snapshotMutex);
+            std::memcpy(m_snapshot->data(),
+                        m_current->data(),
+                        m_current->size());
+        }
+
+        m_generation.fetch_add(1, std::memory_order_relaxed);
+
+        // 4. Уведомить главный поток (queued connection).
+        emit stepped();
+    }
 }
 
 // ─── Один шаг симуляции ─────────────────────────────────────────────
 
 void AutomatonController::step()
 {
-    const size_t W = m_planes.width();
-    const size_t H = m_planes.height();
+    const size_t W = m_current->width();
+    const size_t H = m_current->height();
 
-    const std::span<const uint8_t> cur = m_planes.view(0);
-    uint8_t* next = m_planes.data() + m_planes.size();
+    const uint8_t* cur  = m_current->data();
+    uint8_t*       next = m_tmp->data();
 
     for (size_t y = 0; y < H; ++y) {
         for (size_t x = 0; x < W; ++x) {
@@ -68,28 +149,6 @@ void AutomatonController::step()
             next[idx] = m_rule(neighborhood.count());
         }
     }
-
-    std::memcpy(m_planes.data(), next, m_planes.size());
-
-    ++m_generation;
-    emit stepped();
-}
-
-// ─── Управление таймером ────────────────────────────────────────────
-
-void AutomatonController::start()
-{
-    m_timer.start();
-}
-
-void AutomatonController::stop()
-{
-    m_timer.stop();
-}
-
-void AutomatonController::setInterval(int ms)
-{
-    m_timer.setInterval(ms);
 }
 
 } // namespace ntcap
