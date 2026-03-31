@@ -1,7 +1,7 @@
 #include "CellularCanvas.h"
-
 #include <QPainter>
 #include <QPaintEvent>
+#include <QResizeEvent>
 #include <QMutexLocker>
 #include <cstring>
 #include <cmath>
@@ -9,11 +9,17 @@
 
 namespace ntcap {
 
-// ─── Конструктор ────────────────────────────────────────────────────
+// ─── Конструкторы ───────────────────────────────────────────────────
+
+CellularCanvas::CellularCanvas(QWidget* parent)
+    : QWidget(parent)
+{
+    initDefaults();
+}
 
 CellularCanvas::CellularCanvas(size_t fieldWidth,
-                                 size_t fieldHeight,
-                                 QWidget* parent)
+                               size_t fieldHeight,
+                               QWidget* parent)
     : QWidget(parent)
     , m_fieldWidth(fieldWidth)
     , m_fieldHeight(fieldHeight)
@@ -21,23 +27,47 @@ CellularCanvas::CellularCanvas(size_t fieldWidth,
               static_cast<int>(fieldHeight),
               QImage::Format_Indexed8)
 {
-    setFixedSize(static_cast<int>(fieldWidth),
-                 static_cast<int>(fieldHeight));
+    initDefaults();
+    m_image.fill(0);
+}
 
+void CellularCanvas::initDefaults()
+{
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
 
     m_colorMap[0] = qRgb(255, 255, 255);
     m_colorMap[1] = qRgb(  0,   0,   0);
+    rebuildColorTable();
+}
 
+// ─── Размер поля ────────────────────────────────────────────────────
+
+void CellularCanvas::setFieldSize(size_t width, size_t height)
+{
+    if (m_fieldWidth == width && m_fieldHeight == height)
+        return;
+
+    m_fieldWidth  = width;
+    m_fieldHeight = height;
+    m_image = QImage(static_cast<int>(width),
+                     static_cast<int>(height),
+                     QImage::Format_Indexed8);
     rebuildColorTable();
     m_image.fill(0);
+
+    m_fitPending = true;          // пересчитать масштаб под новое поле
+    if (width > 0 && height > 0)
+        fitToWindow();
+
+    update();
 }
 
 // ─── Источник данных ────────────────────────────────────────────────
 
 void CellularCanvas::setPlanes(const Planes* planes,
-                                 size_t planeIndex) noexcept
+                               size_t planeIndex) noexcept
 {
     m_planes     = planes;
     m_planeIndex = planeIndex;
@@ -64,24 +94,21 @@ void CellularCanvas::setDefaultColor(QRgb color) noexcept
 
 // ─── Геттеры / сеттеры камеры ───────────────────────────────────────
 
-qreal CellularCanvas::zoom() const noexcept
+qreal CellularCanvas::zoom() const noexcept       { return m_zoom;   }
+QPointF CellularCanvas::offset() const noexcept    { return m_offset; }
+void CellularCanvas::setPanStep(qreal v) noexcept  { m_panStep = v;   }
+void CellularCanvas::setZoomFactor(qreal v) noexcept { m_zoomFactor = v; }
+
+// ─── sizeHint ───────────────────────────────────────────────────────
+
+QSize CellularCanvas::sizeHint() const
 {
-    return m_zoom;
+    return {640, 480};
 }
 
-QPointF CellularCanvas::offset() const noexcept
+QSize CellularCanvas::minimumSizeHint() const
 {
-    return m_offset;
-}
-
-void CellularCanvas::setPanStep(qreal pixels) noexcept
-{
-    m_panStep = pixels;
-}
-
-void CellularCanvas::setZoomFactor(qreal factor) noexcept
-{
-    m_zoomFactor = factor;
+    return {120, 90};
 }
 
 // ─── Слот: обновление ───────────────────────────────────────────────
@@ -106,25 +133,10 @@ void CellularCanvas::zoomOut()
     zoomAt(center, m_zoom / m_zoomFactor);
 }
 
-void CellularCanvas::panLeft()
-{
-    panByPixels(m_panStep, 0.0);
-}
-
-void CellularCanvas::panRight()
-{
-    panByPixels(-m_panStep, 0.0);
-}
-
-void CellularCanvas::panUp()
-{
-    panByPixels(0.0, m_panStep);
-}
-
-void CellularCanvas::panDown()
-{
-    panByPixels(0.0, -m_panStep);
-}
+void CellularCanvas::panLeft()  { panByPixels( m_panStep, 0.0); }
+void CellularCanvas::panRight() { panByPixels(-m_panStep, 0.0); }
+void CellularCanvas::panUp()    { panByPixels(0.0,  m_panStep); }
+void CellularCanvas::panDown()  { panByPixels(0.0, -m_panStep); }
 
 // ─── Камера: мышь ───────────────────────────────────────────────────
 
@@ -144,13 +156,28 @@ void CellularCanvas::panByPixels(qreal dx, qreal dy)
     update();
 }
 
+// ─── resizeEvent ────────────────────────────────────────────────────
+
+void CellularCanvas::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+
+    if (m_fitPending && m_fieldWidth > 0 && m_fieldHeight > 0) {
+        fitToWindow();
+    }
+    // zoom и offset сохраняются — просто перерисовка
+    update();
+}
+
 // ─── paintEvent ─────────────────────────────────────────────────────
 
 void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter painter(this);
-
     painter.fillRect(rect(), QColor(40, 40, 40));
+
+    if (m_fieldWidth == 0 || m_fieldHeight == 0)
+        return;
 
     const QPointF topLeftField     = widgetToField({0.0, 0.0});
     const QPointF bottomRightField = widgetToField({
@@ -160,12 +187,13 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 
     const qreal srcLeft   = std::max(topLeftField.x(),     0.0);
     const qreal srcTop    = std::max(topLeftField.y(),     0.0);
-    const qreal srcRight  = std::min(bottomRightField.x(), static_cast<qreal>(m_fieldWidth));
-    const qreal srcBottom = std::min(bottomRightField.y(), static_cast<qreal>(m_fieldHeight));
+    const qreal srcRight  = std::min(bottomRightField.x(),
+                                     static_cast<qreal>(m_fieldWidth));
+    const qreal srcBottom = std::min(bottomRightField.y(),
+                                     static_cast<qreal>(m_fieldHeight));
 
-    if (srcLeft >= srcRight || srcTop >= srcBottom) {
+    if (srcLeft >= srcRight || srcTop >= srcBottom)
         return;
-    }
 
     const QRectF sourceRect(srcLeft, srcTop,
                             srcRight - srcLeft,
@@ -184,34 +212,53 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 
 // ─── Приватные методы ───────────────────────────────────────────────
 
+void CellularCanvas::fitToWindow()
+{
+    const qreal fw = static_cast<qreal>(m_fieldWidth);
+    const qreal fh = static_cast<qreal>(m_fieldHeight);
+    const qreal ww = static_cast<qreal>(width());
+    const qreal wh = static_cast<qreal>(height());
+
+    if (fw <= 0.0 || fh <= 0.0 || ww <= 0.0 || wh <= 0.0)
+        return;
+
+    // zoom — минимальный из двух, чтобы поле целиком влезло
+    m_zoom = std::min(ww / fw, wh / fh);
+
+    // offset — центрируем поле в виджете
+    //   widgetCenter / zoom + offset = fieldCenter
+    //   offset = fieldCenter - widgetCenter / zoom
+    m_offset.setX(fw / 2.0 - ww / 2.0 / m_zoom);
+    m_offset.setY(fh / 2.0 - wh / 2.0 / m_zoom);
+
+    m_fitPending = false;
+}
+
 QPointF CellularCanvas::widgetToField(const QPointF& widgetPos) const
 {
-    return QPointF(widgetPos.x() / m_zoom + m_offset.x(),
-                   widgetPos.y() / m_zoom + m_offset.y());
+    return {widgetPos.x() / m_zoom + m_offset.x(),
+            widgetPos.y() / m_zoom + m_offset.y()};
 }
 
 void CellularCanvas::rebuildColorTable()
 {
     QList<QRgb> colorTable;
     colorTable.reserve(256);
-
-    for (int i = 0; i < 256; ++i) {
-        const auto state = static_cast<uint8_t>(i);
-        colorTable.append(m_colorMap.value(state, m_defaultColor));
-    }
-
-    m_image.setColorTable(colorTable);
+    for (int i = 0; i < 256; ++i)
+        colorTable.append(m_colorMap.value(static_cast<uint8_t>(i),
+                                           m_defaultColor));
+    if (!m_image.isNull())
+        m_image.setColorTable(colorTable);
 }
 
 void CellularCanvas::rebuildImage()
 {
-    if (!m_planes) {
-        m_image.fill(0);
+    if (!m_planes || m_fieldWidth == 0 || m_fieldHeight == 0) {
+        if (!m_image.isNull())
+            m_image.fill(0);
         return;
     }
 
-    // Блокируем мьютекс на время чтения из Planes.
-    // Если мьютекс не задан — читаем без блокировки.
     QMutexLocker lock(m_planesMutex);
 
     const std::span<const uint8_t> plane = m_planes->view(m_planeIndex);
@@ -220,7 +267,8 @@ void CellularCanvas::rebuildImage()
 
     for (int y = 0; y < h; ++y) {
         uint8_t*       dst = m_image.scanLine(y);
-        const uint8_t* src = plane.data() + static_cast<size_t>(y) * m_fieldWidth;
+        const uint8_t* src = plane.data()
+                             + static_cast<size_t>(y) * m_fieldWidth;
         std::memcpy(dst, src, static_cast<size_t>(w));
     }
 }
