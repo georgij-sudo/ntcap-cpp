@@ -67,4 +67,8 @@ size_t Planes::size() const noexcept
     return m_size;
 }
 
+size_t Planes::numPlanes() const noexcept {
+    return m_numPlanes;
+}
+
 } // namespace ntcap

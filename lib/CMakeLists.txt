@@ -2,6 +2,7 @@ add_library(ntcap
     TorusTopology.cpp
     Planes.cpp
     VonNeumannN.cpp
+    PlanesCsvConverter.cpp
 )
 
 set_target_properties(ntcap PROPERTIES LINKER_LANGUAGE CXX)

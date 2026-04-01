@@ -61,6 +61,11 @@ public:
      */
     size_t size() const noexcept;
 
+    /**
+     * Returns number of planes.
+     */
+    size_t numPlanes() const noexcept;
+
 private:
     /**
      * Plane width.
