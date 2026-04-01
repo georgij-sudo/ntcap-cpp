@@ -4,7 +4,7 @@
 #include "KeyboardController.h"
 #include "MouseController.h"
 #include "AutomatonController.h"
-#include "Parity.h"
+#include "Life.h"
 #include "Planes.h"
 #include "TorusTopology.h"
 
@@ -19,10 +19,13 @@ int main(int argc, char* argv[])
 
     // Начальное состояние: одна плоскость.
     Planes initialPlanes(W, H, 1);
-    initialPlanes.data()[H / 2 * W + W / 2] = 1;
+
+    for (size_t i = 0; i < initialPlanes.size(); ++i) {
+        initialPlanes.data()[i] = rand() % 2;
+    }
 
     // ── Автомат (Parity + тор) ──────────────────────────
-    auto parity = std::make_unique<Parity>(
+    auto parity = std::make_unique<Life>(
         initialPlanes,
         std::make_unique<TorusTopology>(W, H));
 

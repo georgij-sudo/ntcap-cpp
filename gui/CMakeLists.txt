@@ -9,7 +9,6 @@ add_executable(ntcap-gui
     KeyboardController.cpp
     MouseController.cpp
     Automaton.cpp
-    Parity.cpp
     MainWindow.cpp
     converters/PlanesConverter.cpp
     converters/CsvPlanesConverter.cpp
@@ -17,11 +16,14 @@ add_executable(ntcap-gui
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
+    recipes/Life.cpp
+    recipes/Parity.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)
 target_include_directories(ntcap-gui PRIVATE menu_bar)
+target_include_directories(ntcap-gui PRIVATE recipes)
 
 target_link_libraries(ntcap-gui
     PRIVATE
