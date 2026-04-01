@@ -3,7 +3,6 @@
 #include <QMenuBar>
 #include <QAction>
 #include <QTimer>
-#include <QMutexLocker>
 
 #include "CellularCanvas.h"
 #include "AutomatonController.h"
@@ -57,8 +56,10 @@ void MainWindow::showEvent(QShowEvent* event)
 
 Planes MainWindow::snapshotCopy() const
 {
-    QMutexLocker lock(m_controller->snapshotMutex());
-    return *m_controller->snapshot();
+    // consume() + копия из read-буфера — без мьютекса
+    auto& tb = m_controller->tripleBuffer();
+    tb.consume();                       // забираем свежее (если есть)
+    return tb.readBuffer();             // копия (Planes copy ctor)
 }
 
 void MainWindow::applyLoadedPlanes(const Planes& planes)
@@ -67,8 +68,8 @@ void MainWindow::applyLoadedPlanes(const Planes& planes)
     if (wasPlaying)
         m_simulationActions->pause();
 
-    m_controller->resetPlanes(planes);
-    m_canvas->setPlanes(m_controller->snapshot(), 0);
+    m_canvas->setTripleBuffer(&m_controller->tripleBuffer(), 0);
+    m_canvas->setFieldSize(planes.width(), planes.height());
     m_canvas->refresh();
 
     if (wasPlaying)

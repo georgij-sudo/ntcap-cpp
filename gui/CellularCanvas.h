@@ -1,11 +1,12 @@
+// CellularCanvas.h — убираем QMutex*, добавляем TripleBuffer*
 #pragma once
 #include <QWidget>
 #include <QImage>
 #include <QMap>
-#include <QMutex>
 #include <QRgb>
 #include <QPointF>
 #include "Planes.h"
+#include "TripleBuffer.h"
 
 namespace ntcap {
 
@@ -17,8 +18,11 @@ public:
                    QWidget* parent = nullptr);
 
     void setFieldSize(size_t width, size_t height);
-    void setPlanes(const Planes* planes, size_t planeIndex = 0) noexcept;
-    void setPlanesMutex(QMutex* mutex) noexcept;
+
+    /// Подключить triple buffer (вместо setPlanes + setPlanesMutex)
+    void setTripleBuffer(TripleBuffer<Planes>* tb,
+                         size_t planeIndex = 0) noexcept;
+
     void setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept;
     void setDefaultColor(QRgb color) noexcept;
 
@@ -40,37 +44,32 @@ public slots:
     void panDown();
     void zoomAt(const QPointF& widgetAnchor, qreal newZoom);
     void panByPixels(qreal dx, qreal dy);
-
-    void     fitToWindow();
+    void fitToWindow();
 
 protected:
     void paintEvent(QPaintEvent* event)   override;
     void resizeEvent(QResizeEvent* event) override;
 
 private:
-    void     initDefaults();
-    void     rebuildColorTable();
-    void     rebuildImage();
-    QPointF  widgetToField(const QPointF& widgetPos) const;
+    void    initDefaults();
+    void    rebuildColorTable();
+    void    rebuildImage();
+    QPointF widgetToField(const QPointF& widgetPos) const;
 
-    // ── Поле ────────────────────────────────────────────
-    size_t        m_fieldWidth   = 0;
-    size_t        m_fieldHeight  = 0;
-    const Planes* m_planes       = nullptr;
-    size_t        m_planeIndex   = 0;
-    QMutex*       m_planesMutex  = nullptr;
+    size_t              m_fieldWidth   = 0;
+    size_t              m_fieldHeight  = 0;
+    TripleBuffer<Planes>* m_triple     = nullptr;   // ← заменили
+    size_t              m_planeIndex   = 0;
 
-    // ── Цвета ───────────────────────────────────────────
     QMap<uint8_t, QRgb> m_colorMap;
     QRgb                m_defaultColor = qRgb(255, 255, 255);
     QImage              m_image;
 
-    // ── Вьюпорт ─────────────────────────────────────────
     qreal   m_zoom       = 1.0;
     QPointF m_offset     = {0.0, 0.0};
     qreal   m_panStep    = 20.0;
     qreal   m_zoomFactor = 1.25;
-    bool    m_fitPending = true;   // fit-to-window при первом показе
+    bool    m_fitPending = true;
 };
 
 } // namespace ntcap

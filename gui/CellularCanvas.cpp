@@ -64,20 +64,6 @@ void CellularCanvas::setFieldSize(size_t width, size_t height)
     update();
 }
 
-// ─── Источник данных ────────────────────────────────────────────────
-
-void CellularCanvas::setPlanes(const Planes* planes,
-                               size_t planeIndex) noexcept
-{
-    m_planes     = planes;
-    m_planeIndex = planeIndex;
-}
-
-void CellularCanvas::setPlanesMutex(QMutex* mutex) noexcept
-{
-    m_planesMutex = mutex;
-}
-
 // ─── Цветовая карта ─────────────────────────────────────────────────
 
 void CellularCanvas::setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept
@@ -251,25 +237,35 @@ void CellularCanvas::rebuildColorTable()
         m_image.setColorTable(colorTable);
 }
 
+// CellularCanvas.cpp — только изменённые методы
+
+void CellularCanvas::setTripleBuffer(TripleBuffer<Planes>* tb,
+                                     size_t planeIndex) noexcept
+{
+    m_triple     = tb;
+    m_planeIndex = planeIndex;
+}
+
 void CellularCanvas::rebuildImage()
 {
-    if (!m_planes || m_fieldWidth == 0 || m_fieldHeight == 0) {
-        if (!m_image.isNull())
-            m_image.fill(0);
+    if (!m_triple || m_fieldWidth == 0 || m_fieldHeight == 0) {
+        if (!m_image.isNull()) m_image.fill(0);
         return;
     }
 
-    QMutexLocker lock(m_planesMutex);
+    // Атомарно забираем свежий буфер — без мьютекса
+    m_triple->consume();   // если есть новое — swap, иначе noop
 
-    const std::span<const uint8_t> plane = m_planes->view(m_planeIndex);
+    const auto& planes = m_triple->readBuffer();
+    const std::span<const uint8_t> plane = planes.view(m_planeIndex);
+
     const int w = static_cast<int>(m_fieldWidth);
     const int h = static_cast<int>(m_fieldHeight);
 
     for (int y = 0; y < h; ++y) {
-        uint8_t*       dst = m_image.scanLine(y);
-        const uint8_t* src = plane.data()
-                             + static_cast<size_t>(y) * m_fieldWidth;
-        std::memcpy(dst, src, static_cast<size_t>(w));
+        std::memcpy(m_image.scanLine(y),
+                    plane.data() + static_cast<size_t>(y) * m_fieldWidth,
+                    static_cast<size_t>(w));
     }
 }
 

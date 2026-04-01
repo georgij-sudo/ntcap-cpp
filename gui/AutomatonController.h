@@ -1,11 +1,12 @@
+// AutomatonController.h
 #pragma once
 #include <QObject>
 #include <QThread>
-#include <QMutex>
 #include <atomic>
 #include <memory>
 #include "Planes.h"
 #include "Automaton.h"
+#include "TripleBuffer.h"
 
 namespace ntcap {
 
@@ -17,25 +18,23 @@ public:
                                  QObject* parent = nullptr);
     ~AutomatonController() override;
 
-    const Planes* snapshot() const noexcept;
-    QMutex*       snapshotMutex() noexcept;
-    size_t        generation() const noexcept;
-    size_t        renderInterval() const noexcept;
-    size_t        stepDelayMs() const noexcept;
+    // Reader thread (GUI) вызывает:
+    TripleBuffer<Planes>& tripleBuffer() noexcept { return m_triple; }
+
+    size_t generation()     const noexcept;
+    size_t renderInterval() const noexcept;
+    size_t stepDelayMs()    const noexcept;
+    bool   isRunning()      const noexcept;
 
     void setAutomaton(std::unique_ptr<Automaton> automaton);
-
-    bool isRunning() const noexcept;
 
 public slots:
     void start();
     void stop();
     void stepOnce();
-
     void setRenderInterval(size_t n);
     void skipSteps(size_t n);
     void setStepDelay(size_t ms);
-
     void resetPlanes(Planes planes);
 
 signals:
@@ -48,13 +47,12 @@ private:
     Planes                     m_current;
     std::unique_ptr<Automaton> m_automaton;
 
-    std::unique_ptr<Planes>    m_snapshot;
-    mutable QMutex             m_snapshotMutex;
+    // ── Вместо snapshot + mutex ──
+    TripleBuffer<Planes>       m_triple;
 
     QThread                    m_thread;
     std::atomic<bool>          m_running{false};
     std::atomic<size_t>        m_generation{0};
-
     std::atomic<size_t>        m_renderInterval{1};
     std::atomic<size_t>        m_skipRemaining{0};
     std::atomic<size_t>        m_stepDelayMs{0};
