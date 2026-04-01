@@ -70,15 +70,15 @@ private:
     /**
      * Plane width.
      */
-    const size_t m_width;
+    size_t m_width;
     /**
      * Plane size=width*height.
      */
-    const size_t m_size;
+    size_t m_size;
     /**
      * Number of planes.
      */
-    const size_t m_numPlanes;
+    size_t m_numPlanes;
 
     /**
      * Planes data packed into 1 dimension vector.

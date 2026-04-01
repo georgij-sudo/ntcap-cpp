@@ -25,9 +25,13 @@ public:
 
     void setAutomaton(std::unique_ptr<Automaton> automaton);
 
+    bool isRunning() const noexcept;
+
 public slots:
     void start();
     void stop();
+    void stepOnce();
+
     void setRenderInterval(size_t n);
     void skipSteps(size_t n);
     void setStepDelay(size_t ms);

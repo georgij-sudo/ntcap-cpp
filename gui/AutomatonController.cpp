@@ -80,6 +80,11 @@ void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
     m_automaton->setCurrent(m_current);
 }
 
+bool AutomatonController::isRunning() const noexcept
+{
+    return m_running.load();
+}
+
 void AutomatonController::start()
 {
     if (m_running.load())
@@ -106,6 +111,24 @@ void AutomatonController::stop()
 
     disconnect(&m_thread, &QThread::started,
                this,      &AutomatonController::run);
+}
+
+void AutomatonController::stepOnce()
+{
+    m_automaton->step();
+    m_automaton->commit();
+
+    const size_t gen =
+        m_generation.fetch_add(1, std::memory_order_relaxed) + 1;
+
+    {
+        QMutexLocker lock(&m_snapshotMutex);
+        std::memcpy(m_snapshot->data(),
+                    m_current.data(),
+                    m_current.size());
+    }
+
+    emit stepped();
 }
 
 void AutomatonController::run()

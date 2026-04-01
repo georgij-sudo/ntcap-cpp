@@ -41,6 +41,8 @@ public slots:
     void zoomAt(const QPointF& widgetAnchor, qreal newZoom);
     void panByPixels(qreal dx, qreal dy);
 
+    void     fitToWindow();
+
 protected:
     void paintEvent(QPaintEvent* event)   override;
     void resizeEvent(QResizeEvent* event) override;
@@ -49,7 +51,6 @@ private:
     void     initDefaults();
     void     rebuildColorTable();
     void     rebuildImage();
-    void     fitToWindow();
     QPointF  widgetToField(const QPointF& widgetPos) const;
 
     // ── Поле ────────────────────────────────────────────
