@@ -11,7 +11,15 @@ add_executable(ntcap-gui
     Automaton.cpp
     Parity.cpp
     MainWindow.cpp
+    converters/PlanesConverter.cpp
+    converters/CsvPlanesConverter.cpp
+    converters/RlePlanesConverter.cpp
+    menu_bar/LoadPlanesAction.cpp
+    menu_bar/SavePlanesAction.cpp
 )
+
+target_include_directories(ntcap-gui PRIVATE converters)
+target_include_directories(ntcap-gui PRIVATE menu_bar)
 
 target_link_libraries(ntcap-gui
     PRIVATE

@@ -16,9 +16,6 @@ AutomatonController::AutomatonController(Planes planes,
                                          1))
 {
     m_automaton->setCurrent(m_current);
-    std::memcpy(m_snapshot->data(),
-                m_current.data(),
-                m_current.size());
 }
 
 AutomatonController::~AutomatonController()
@@ -64,6 +61,17 @@ void AutomatonController::skipSteps(size_t n)
 void AutomatonController::setStepDelay(size_t ms)
 {
     m_stepDelayMs.store(ms, std::memory_order_relaxed);
+}
+
+void AutomatonController::resetPlanes(Planes planes)
+{
+    m_current = std::move(planes);
+    m_generation = 0;
+
+    {
+        QMutexLocker lock(&m_snapshotMutex);
+        *m_snapshot = m_current;
+    }
 }
 
 void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
