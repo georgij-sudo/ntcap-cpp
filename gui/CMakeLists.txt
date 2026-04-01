@@ -16,8 +16,10 @@ add_executable(ntcap-gui
     converters/RlePlanesConverter.cpp
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
+    menu_bar/SimulationActions.cpp
 )
 
+target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)
 target_include_directories(ntcap-gui PRIVATE menu_bar)
 
