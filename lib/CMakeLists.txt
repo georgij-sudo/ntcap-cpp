@@ -3,6 +3,7 @@ add_library(ntcap
     Planes.cpp
     VonNeumannN.cpp
     PlanesCsvConverter.cpp
+    PlanesRleConverter.cpp
 )
 
 set_target_properties(ntcap PROPERTIES LINKER_LANGUAGE CXX)

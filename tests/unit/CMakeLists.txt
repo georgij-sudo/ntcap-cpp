@@ -23,6 +23,7 @@ add_executable(unit_tests
     planes.cpp
     von_neumann.cpp
     planes_csv.cpp
+    planes_rle.cpp
     # test_another.cpp     # добавляйте файлы по мере роста
 )
 
