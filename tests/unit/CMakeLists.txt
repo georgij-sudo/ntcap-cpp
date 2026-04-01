@@ -22,6 +22,7 @@ add_executable(unit_tests
     torus.cpp
     planes.cpp
     von_neumann.cpp
+    planes_csv.cpp
     # test_another.cpp     # добавляйте файлы по мере роста
 )
 
