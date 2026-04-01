@@ -38,8 +38,12 @@ int main(int argc, char* argv[])
     MainWindow window(W, H, &controller);
     CellularCanvas* canvas = window.canvas();
 
-    canvas->setPlanes(controller.snapshot(), 0);
-    canvas->setPlanesMutex(controller.snapshotMutex());
+    // Стало:
+    canvas->setTripleBuffer(&controller.tripleBuffer());
+    // Сигнал тот же:
+    controller.connect(&controller, &AutomatonController::stepped,
+                       canvas,     &CellularCanvas::refresh,
+                       Qt::QueuedConnection);  // refresh() в GUI-потоке
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
