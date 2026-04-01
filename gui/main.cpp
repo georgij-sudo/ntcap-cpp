@@ -1,5 +1,4 @@
 #include <QApplication>
-
 #include "MainWindow.h"
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
@@ -25,19 +24,17 @@ int main(int argc, char* argv[])
     // ── Автомат (Parity + тор) ──────────────────────────
     auto parity = std::make_unique<Parity>(
         initialPlanes,
-        std::make_unique<TorusTopology>(W, H)
-    );
+        std::make_unique<TorusTopology>(W, H));
 
     // ── Симуляция ───────────────────────────────────────
     AutomatonController controller(
         std::move(initialPlanes),
-        std::move(parity)
-    );
+        std::move(parity));
 
     // ── Главное окно ────────────────────────────────────
-    MainWindow window(W, H);
-
+    MainWindow window(W, H, &controller);
     CellularCanvas* canvas = window.canvas();
+
     canvas->setPlanes(controller.snapshot(), 0);
     canvas->setPlanesMutex(controller.snapshotMutex());
 
@@ -61,6 +58,5 @@ int main(int argc, char* argv[])
 
     const int result = app.exec();
     controller.stop();
-
     return result;
 }

@@ -32,6 +32,8 @@ public slots:
     void skipSteps(size_t n);
     void setStepDelay(size_t ms);
 
+    void resetPlanes(Planes planes);
+
 signals:
     void stepped();
 
