@@ -1,4 +1,3 @@
-// AutomatonController.cpp
 #include "AutomatonController.h"
 #include <cstring>
 #include <algorithm>
@@ -11,60 +10,68 @@ AutomatonController::AutomatonController(Planes planes,
     : QObject(parent)
     , m_current(std::move(planes))
     , m_automaton(std::move(automaton))
-    , m_triple(m_current)             // три копии начального состояния
+    // Фабрика: создаём 3 пустых Planes с теми же размерами,
+    // НЕ полагаясь на copy-ctor Planes
+    , m_triple([this]() {
+          return Planes(m_current.width(),
+                        m_current.height(),
+                        m_current.numPlanes());
+      })
 {
     m_automaton->setCurrent(m_current);
+    publishSnapshot();
 }
 
-AutomatonController::~AutomatonController() { stop(); }
+AutomatonController::~AutomatonController()
+{
+    stop();
+}
 
-size_t AutomatonController::generation()     const noexcept { return m_generation.load(std::memory_order_relaxed); }
-size_t AutomatonController::renderInterval() const noexcept { return m_renderInterval.load(std::memory_order_relaxed); }
-size_t AutomatonController::stepDelayMs()    const noexcept { return m_stepDelayMs.load(std::memory_order_relaxed); }
-bool   AutomatonController::isRunning()      const noexcept { return m_running.load(); }
+size_t AutomatonController::generation() const noexcept {
+    return m_generation.load(std::memory_order_relaxed);
+}
+size_t AutomatonController::renderInterval() const noexcept {
+    return m_renderInterval.load(std::memory_order_relaxed);
+}
+size_t AutomatonController::stepDelayMs() const noexcept {
+    return m_stepDelayMs.load(std::memory_order_relaxed);
+}
+bool AutomatonController::isRunning() const noexcept {
+    return m_running.load();
+}
 
-void AutomatonController::setRenderInterval(size_t n) { m_renderInterval.store(n < 1 ? 1 : n, std::memory_order_relaxed); }
-void AutomatonController::skipSteps(size_t n)         { m_skipRemaining.fetch_add(n, std::memory_order_relaxed); }
-void AutomatonController::setStepDelay(size_t ms)     { m_stepDelayMs.store(ms, std::memory_order_relaxed); }
+void AutomatonController::setRenderInterval(size_t n) {
+    m_renderInterval.store(n < 1 ? 1 : n, std::memory_order_relaxed);
+}
+void AutomatonController::skipSteps(size_t n) {
+    m_skipRemaining.fetch_add(n, std::memory_order_relaxed);
+}
+void AutomatonController::setStepDelay(size_t ms) {
+    m_stepDelayMs.store(ms, std::memory_order_relaxed);
+}
 
 void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
 {
+    Q_ASSERT(!m_running.load());
     m_automaton = std::move(automaton);
     m_automaton->setCurrent(m_current);
 }
 
 void AutomatonController::resetPlanes(Planes planes)
 {
+    Q_ASSERT(!m_running.load());
     m_current = std::move(planes);
     m_generation = 0;
-
-    // Публикуем через triple buffer — без мьютекса
-    std::memcpy(m_triple.writeBuffer().data(),
-                m_current.data(),
-                m_current.size());
-    m_triple.publish();
+    m_automaton->setCurrent(m_current);
+    publishSnapshot();
 }
 
-// ─── stepOnce (вызывается из GUI, когда симуляция остановлена) ───
-void AutomatonController::stepOnce()
-{
-    m_automaton->step();
-    m_automaton->commit();
-    m_generation.fetch_add(1, std::memory_order_relaxed);
-
-    std::memcpy(m_triple.writeBuffer().data(),
-                m_current.data(),
-                m_current.size());
-    m_triple.publish();
-
-    emit stepped();
-}
-
-// ─── start / stop ───────────────────────────────────────────────
 void AutomatonController::start()
 {
-    if (m_running.load()) return;
-    if (!m_automaton) return;
+    if (m_running.load())
+        return;
+    if (!m_automaton)
+        return;
     m_running.store(true);
     QObject::connect(&m_thread, &QThread::started,
                      this,      &AutomatonController::run,
@@ -74,7 +81,8 @@ void AutomatonController::start()
 
 void AutomatonController::stop()
 {
-    if (!m_running.load()) return;
+    if (!m_running.load())
+        return;
     m_running.store(false);
     m_thread.quit();
     m_thread.wait();
@@ -82,37 +90,44 @@ void AutomatonController::stop()
                this,      &AutomatonController::run);
 }
 
-// ─── Главный цикл (worker thread) ──────────────────────────────
+void AutomatonController::stepOnce()
+{
+    Q_ASSERT(!m_running.load());
+    m_automaton->step();
+    m_automaton->commit();
+    m_generation.fetch_add(1, std::memory_order_relaxed);
+    publishSnapshot();
+    emit stepped();
+}
+
 void AutomatonController::run()
 {
     while (m_running.load(std::memory_order_relaxed)) {
-        // Delay
+        // ── Задержка ──
         const size_t delay = m_stepDelayMs.load(std::memory_order_relaxed);
         if (delay > 0) {
             constexpr size_t kChunkMs = 50;
             size_t waited = 0;
-            while (waited < delay && m_running.load(std::memory_order_relaxed)) {
-                QThread::msleep(static_cast<unsigned long>(
-                    std::min(kChunkMs, delay - waited)));
-                waited += std::min(kChunkMs, delay - waited);
+            while (waited < delay
+                   && m_running.load(std::memory_order_relaxed)) {
+                const size_t chunk = std::min(kChunkMs, delay - waited);
+                QThread::msleep(static_cast<unsigned long>(chunk));
+                waited += chunk;
             }
-            if (!m_running.load(std::memory_order_relaxed)) break;
+            if (!m_running.load(std::memory_order_relaxed))
+                break;
         }
 
-        // Step
+        // ── Шаг ──
         m_automaton->step();
         m_automaton->commit();
-        const size_t gen = m_generation.fetch_add(1, std::memory_order_relaxed) + 1;
+        const size_t gen =
+            m_generation.fetch_add(1, std::memory_order_relaxed) + 1;
 
         if (!shouldRender(gen))
             continue;
 
-        // ── Публикация: memcpy в write-буфер + атомарный swap ──
-        std::memcpy(m_triple.writeBuffer().data(),
-                    m_current.data(),
-                    m_current.size());
-        m_triple.publish();   // lock-free, ~наносекунды
-
+        publishSnapshot();
         emit stepped();
     }
 }
@@ -127,6 +142,17 @@ bool AutomatonController::shouldRender(size_t gen) noexcept
     }
     const size_t interval = m_renderInterval.load(std::memory_order_relaxed);
     return interval <= 1 || (gen % interval) == 0;
+}
+
+void AutomatonController::publishSnapshot()
+{
+    const size_t totalBytes =
+        m_current.size() * m_current.numPlanes();
+
+    std::memcpy(m_triple.writeBuffer().data(),
+                m_current.data(),
+                totalBytes);
+    m_triple.publish();
 }
 
 } // namespace ntcap
