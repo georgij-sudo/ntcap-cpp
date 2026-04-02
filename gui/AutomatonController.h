@@ -35,9 +35,6 @@ public slots:
     void setStepDelay(size_t ms);
     void resetPlanes(Planes planes);
 
-signals:
-    void stepped();
-
 private:
     void run();
     bool shouldRender(size_t gen) noexcept;

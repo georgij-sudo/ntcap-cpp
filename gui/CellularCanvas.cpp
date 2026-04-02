@@ -84,6 +84,8 @@ QSize CellularCanvas::minimumSizeHint() const  { return {120, 90};  }
 
 void CellularCanvas::refresh()
 {
+    if (!m_triple->consume())
+        return;
     rebuildImage();
     update();
 }
@@ -207,8 +209,6 @@ void CellularCanvas::rebuildImage()
             m_image.fill(0);
         return;
     }
-
-    m_triple->consume();
 
     const Planes& planes = m_triple->readBuffer();
     const std::span<const uint8_t> plane = planes.view(m_planeIndex);

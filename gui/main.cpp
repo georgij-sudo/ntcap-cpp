@@ -1,4 +1,6 @@
 #include <QApplication>
+#include <QTimer>
+
 #include "MainWindow.h"
 #include "CellularCanvas.h"
 #include "KeyboardController.h"
@@ -37,10 +39,12 @@ int main(int argc, char* argv[])
 
     canvas->setTripleBuffer(&controller.tripleBuffer());
 
-    // Одно подключение — не два!
-    QObject::connect(&controller, &AutomatonController::stepped,
-                     canvas,      &CellularCanvas::refresh,
-                     Qt::QueuedConnection);
+    auto* renderTimer = new QTimer(&window);
+    renderTimer->setTimerType(Qt::PreciseTimer);
+    renderTimer->setInterval(16);
+    QObject::connect(renderTimer, &QTimer::timeout,
+                    canvas,      &CellularCanvas::refresh);
+    renderTimer->start();
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);

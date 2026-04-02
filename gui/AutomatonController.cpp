@@ -97,7 +97,6 @@ void AutomatonController::stepOnce()
     m_automaton->commit();
     m_generation.fetch_add(1, std::memory_order_relaxed);
     publishSnapshot();
-    emit stepped();
 }
 
 void AutomatonController::run()
@@ -128,7 +127,6 @@ void AutomatonController::run()
             continue;
 
         publishSnapshot();
-        emit stepped();
     }
 }
 
