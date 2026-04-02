@@ -1,28 +1,19 @@
 #include "Automaton.h"
-#include <cstring>
 
 namespace ntcap {
 
-Automaton::Automaton(Planes& current,
-                     std::unique_ptr<Topology> topology,
-                     QObject* parent)
+Automaton::Automaton(Planes& current, QObject* parent)
     : QObject(parent)
     , m_current(&current)
     , m_tmp(std::make_unique<Planes>(current.width(),
                                      current.height(),
-                                     current.numPlanes()))   // ← все плоскости
-    , m_topology(std::move(topology))
-{
-}
+                                     current.numPlanes())) {}
 
 Automaton::~Automaton() = default;
 
 void Automaton::commit()
 {
-    const size_t totalBytes = m_current->size() * m_current->numPlanes();
-    std::memcpy(m_current->data(),
-                m_tmp->data(),
-                totalBytes);                                  // ← все плоскости
+    std::swap(*m_current, *m_tmp);
 }
 
 void Automaton::setCurrent(Planes& current)
@@ -30,12 +21,22 @@ void Automaton::setCurrent(Planes& current)
     m_current = &current;
     m_tmp = std::make_unique<Planes>(current.width(),
                                      current.height(),
-                                     current.numPlanes());    // ← все плоскости
+                                     current.numPlanes());
 }
 
-Planes& Automaton::current() noexcept        { return *m_current; }
-const Planes& Automaton::current() const noexcept { return *m_current; }
-Planes& Automaton::tmp() noexcept            { return *m_tmp; }
-Topology& Automaton::topology() const noexcept { return *m_topology; }
+Planes& Automaton::current() noexcept
+{
+    return *m_current;
+}
+
+const Planes& Automaton::current() const noexcept
+{
+    return *m_current;
+}
+
+Planes& Automaton::tmp() noexcept
+{
+    return *m_tmp;
+}
 
 } // namespace ntcap

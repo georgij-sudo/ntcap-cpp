@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Automaton.h"
+#include "TorusTopology.h"
 
 namespace ntcap {
 
@@ -16,7 +17,6 @@ class LifeHistory final : public Automaton {
     Q_OBJECT
 public:
     explicit LifeHistory(Planes& current,
-                         std::unique_ptr<Topology> topology,
                          QObject* parent = nullptr);
     ~LifeHistory() override;
 
@@ -26,6 +26,9 @@ public:
      * Read-only view of the previous generation (plane 1).
      */
     std::span<const uint8_t> previous() const noexcept;
+
+private:
+    TorusTopology m_topo;
 };
 
 } // namespace ntcap
