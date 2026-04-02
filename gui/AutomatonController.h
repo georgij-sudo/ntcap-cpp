@@ -1,4 +1,3 @@
-// AutomatonController.h
 #pragma once
 #include <QObject>
 #include <QThread>
@@ -18,7 +17,6 @@ public:
                                  QObject* parent = nullptr);
     ~AutomatonController() override;
 
-    // Reader thread (GUI) вызывает:
     TripleBuffer<Planes>& tripleBuffer() noexcept { return m_triple; }
 
     size_t generation()     const noexcept;
@@ -43,11 +41,10 @@ signals:
 private:
     void run();
     bool shouldRender(size_t gen) noexcept;
+    void publishSnapshot();
 
     Planes                     m_current;
     std::unique_ptr<Automaton> m_automaton;
-
-    // ── Вместо snapshot + mutex ──
     TripleBuffer<Planes>       m_triple;
 
     QThread                    m_thread;

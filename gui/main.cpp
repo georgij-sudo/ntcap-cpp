@@ -4,6 +4,7 @@
 #include "KeyboardController.h"
 #include "MouseController.h"
 #include "AutomatonController.h"
+#include "LifeHistory.h"
 #include "Life.h"
 #include "Planes.h"
 #include "TorusTopology.h"
@@ -17,33 +18,29 @@ int main(int argc, char* argv[])
     constexpr size_t W = 400;
     constexpr size_t H = 400;
 
-    // Начальное состояние: одна плоскость.
-    Planes initialPlanes(W, H, 1);
-
-    for (size_t i = 0; i < initialPlanes.size(); ++i) {
+    Planes initialPlanes(W, H, 2);
+    // Заполняем только plane 0 (plane 1 = previous, нули)
+    for (size_t i = 0; i < W * H; ++i) {
         initialPlanes.data()[i] = rand() % 2;
     }
 
-    // ── Автомат (Parity + тор) ──────────────────────────
-    auto parity = std::make_unique<Life>(
+    auto life = std::make_unique<LifeHistory>(
         initialPlanes,
         std::make_unique<TorusTopology>(W, H));
 
-    // ── Симуляция ───────────────────────────────────────
     AutomatonController controller(
         std::move(initialPlanes),
-        std::move(parity));
+        std::move(life));
 
-    // ── Главное окно ────────────────────────────────────
     MainWindow window(W, H, &controller);
     CellularCanvas* canvas = window.canvas();
 
-    // Стало:
     canvas->setTripleBuffer(&controller.tripleBuffer());
-    // Сигнал тот же:
-    controller.connect(&controller, &AutomatonController::stepped,
-                       canvas,     &CellularCanvas::refresh,
-                       Qt::QueuedConnection);  // refresh() в GUI-потоке
+
+    // Одно подключение — не два!
+    QObject::connect(&controller, &AutomatonController::stepped,
+                     canvas,      &CellularCanvas::refresh,
+                     Qt::QueuedConnection);
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
@@ -51,14 +48,8 @@ int main(int argc, char* argv[])
     canvas->setColorMap(colorMap);
     canvas->setDefaultColor(qRgb(255, 0, 0));
 
-    // ── Ввод ────────────────────────────────────────────
     KeyboardController keyboard(canvas);
     MouseController    mouse(canvas);
-
-    // ── Связи ───────────────────────────────────────────
-    QObject::connect(&controller, &AutomatonController::stepped,
-                     canvas,      &CellularCanvas::refresh,
-                     Qt::QueuedConnection);
 
     window.show();
     controller.start();

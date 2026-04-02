@@ -1,4 +1,3 @@
-// CellularCanvas.h — убираем QMutex*, добавляем TripleBuffer*
 #pragma once
 #include <QWidget>
 #include <QImage>
@@ -19,7 +18,6 @@ public:
 
     void setFieldSize(size_t width, size_t height);
 
-    /// Подключить triple buffer (вместо setPlanes + setPlanesMutex)
     void setTripleBuffer(TripleBuffer<Planes>* tb,
                          size_t planeIndex = 0) noexcept;
 
@@ -56,14 +54,14 @@ private:
     void    rebuildImage();
     QPointF widgetToField(const QPointF& widgetPos) const;
 
-    size_t              m_fieldWidth   = 0;
-    size_t              m_fieldHeight  = 0;
-    TripleBuffer<Planes>* m_triple     = nullptr;   // ← заменили
-    size_t              m_planeIndex   = 0;
+    size_t                m_fieldWidth   = 0;
+    size_t                m_fieldHeight  = 0;
+    TripleBuffer<Planes>* m_triple       = nullptr;
+    size_t                m_planeIndex   = 0;
 
-    QMap<uint8_t, QRgb> m_colorMap;
-    QRgb                m_defaultColor = qRgb(255, 255, 255);
-    QImage              m_image;
+    QMap<uint8_t, QRgb>   m_colorMap;
+    QRgb                  m_defaultColor = qRgb(255, 255, 255);
+    QImage                m_image;
 
     qreal   m_zoom       = 1.0;
     QPointF m_offset     = {0.0, 0.0};

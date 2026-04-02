@@ -17,6 +17,7 @@ add_executable(ntcap-gui
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
     recipes/Life.cpp
+    recipes/LifeHistory.cpp
     recipes/Parity.cpp
 )
 
