@@ -26,10 +26,7 @@ int main(int argc, char* argv[])
         initialPlanes.data()[i] = rand() % 2;
     }
 
-    auto life = std::make_unique<LifeHistory>(
-        initialPlanes,
-        std::make_unique<TorusTopology>(W, H));
-
+    auto life = std::make_unique<LifeHistory>(initialPlanes);
     AutomatonController controller(
         std::move(initialPlanes),
         std::move(life));
