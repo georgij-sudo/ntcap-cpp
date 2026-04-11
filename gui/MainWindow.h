@@ -11,6 +11,8 @@ class AutomatonController;
 class SavePlanesAction;
 class LoadPlanesAction;
 class SimulationActions;
+class ColorMapPresetsAction;
+class ColorMapFromFileAction;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -30,6 +32,7 @@ private:
     // ── menu construction ───────────────────────────────
     void   buildMenuBar();
     void   buildPlanesMenu();
+    void   buildViewMenu();
     QMenu* addPlaceholderMenu(const QString& title);
 
     // ── planes helpers ──────────────────────────────────
@@ -49,6 +52,11 @@ private:
     SavePlanesAction*  m_saveAction        = nullptr;
     LoadPlanesAction*  m_loadAction        = nullptr;
     SimulationActions* m_simulationActions = nullptr;
+
+    // ── в секцию private members ──
+    QMenu*                   m_viewMenu              = nullptr;
+    ColorMapPresetsAction*   m_colorMapPresetsAction  = nullptr;
+    ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
 
     bool m_firstShow = true;
 };
