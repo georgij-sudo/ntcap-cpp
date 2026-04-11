@@ -31,6 +31,8 @@ int main(int argc, char* argv[])
         std::move(initialPlanes),
         std::move(life));
 
+    controller.setStepDelay(32);
+
     MainWindow window(W, H, &controller);
     CellularCanvas* canvas = window.canvas();
 
@@ -42,6 +44,7 @@ int main(int argc, char* argv[])
     QObject::connect(renderTimer, &QTimer::timeout,
                     canvas,      &CellularCanvas::refresh);
     renderTimer->start();
+
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);

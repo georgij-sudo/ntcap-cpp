@@ -16,15 +16,20 @@ add_executable(ntcap-gui
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
+    menu_bar/ColorMapFromFileAction.cpp
+    menu_bar/ColorMapPresetsAction.cpp
     recipes/Life.cpp
     recipes/LifeHistory.cpp
     recipes/Parity.cpp
+    color_map/ColorMapPresets.cpp
+    color_map/ColorMapPresetsDialog.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)
 target_include_directories(ntcap-gui PRIVATE menu_bar)
 target_include_directories(ntcap-gui PRIVATE recipes)
+target_include_directories(ntcap-gui PRIVATE color_map)
 
 target_link_libraries(ntcap-gui
     PRIVATE

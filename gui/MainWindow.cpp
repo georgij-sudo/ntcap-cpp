@@ -9,6 +9,10 @@
 #include "menu_bar/SavePlanesAction.h"
 #include "menu_bar/LoadPlanesAction.h"
 #include "menu_bar/SimulationActions.h"
+#include "menu_bar/ColorMapPresetsAction.h"
+#include "menu_bar/ColorMapFromFileAction.h"
+#include "ColorMapPresetsAction.h"
+#include "ColorMapPresetsDialog.h"
 
 namespace ntcap {
 
@@ -89,6 +93,8 @@ void MainWindow::buildMenuBar()
         this,   // dialogParent
         this);  // QObject parent
     menuBar()->addMenu(m_simulationActions->menu());
+
+    buildViewMenu();
 }
 
 void MainWindow::buildPlanesMenu()
@@ -106,6 +112,32 @@ void MainWindow::buildPlanesMenu()
         [this]() -> Planes { return snapshotCopy(); },
         this, this);
     m_planesMenu->addAction(m_saveAction->action());
+}
+
+void MainWindow::buildViewMenu()
+{
+    m_viewMenu = menuBar()->addMenu(tr("View"));
+
+    // ── Fullscreen (заглушка) ──
+    QAction* fullscreen = m_viewMenu->addAction(tr("Fullscreen"));
+    fullscreen->setShortcut(QKeySequence(Qt::Key_F11));
+    fullscreen->setEnabled(false);
+
+    // ── Theme (заглушка) ──
+    QAction* theme = m_viewMenu->addAction(tr("Theme\u2026"));
+    theme->setEnabled(false);
+
+    m_viewMenu->addSeparator();
+
+    // ── Color Map… ──
+    m_colorMapPresetsAction = new ColorMapPresetsAction(
+        m_canvas, this, this);
+    m_viewMenu->addAction(m_colorMapPresetsAction->action());
+
+    // ── Color Map from file… ──
+    m_colorMapFromFileAction = new ColorMapFromFileAction(
+        m_canvas, this, this);
+    m_viewMenu->addAction(m_colorMapFromFileAction->action());
 }
 
 QMenu* MainWindow::addPlaceholderMenu(const QString& title)
