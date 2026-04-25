@@ -24,11 +24,14 @@ add_executable(ntcap-gui
     color_map/ColorMapPresets.cpp
     color_map/ColorMapPresetsDialog.cpp
 
-    # display strategies (new)
     SinglePlaneStrategy.cpp
     BitfieldStrategy.cpp
     SaturatingSumStrategy.cpp
     NormalizedSumStrategy.cpp
+
+    # new
+    recipes/TubeWorms.cpp
+    recipes/StableTubeWorms.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)

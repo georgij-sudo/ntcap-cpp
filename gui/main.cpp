@@ -6,10 +6,9 @@
 #include "KeyboardController.h"
 #include "MouseController.h"
 #include "AutomatonController.h"
-#include "LifeHistory.h"
-#include "Life.h"
 #include "Planes.h"
 #include "TorusTopology.h"
+#include "StableTubeWorms.h"
 
 using namespace ntcap;
 
@@ -20,16 +19,15 @@ int main(int argc, char* argv[])
     constexpr size_t W = 400;
     constexpr size_t H = 400;
 
-    Planes initialPlanes(W, H, 2);
-    // Заполняем только plane 0 (plane 1 = previous, нули)
-    for (size_t i = 0; i < W * H; ++i) {
-        initialPlanes.data()[i] = rand() % 2;
+    Planes initialPlanes(W, H, 3);
+
+    const size_t planeSize = W * H;
+    for (size_t i = 0; i < planeSize*3; ++i) {
+        initialPlanes.data()[i] = static_cast<uint8_t>(std::rand() % 2);
     }
 
-    auto life = std::make_unique<LifeHistory>(initialPlanes);
-    AutomatonController controller(
-        std::move(initialPlanes),
-        std::move(life));
+    auto worms = std::make_unique<StableTubeWorms>(initialPlanes);
+    AutomatonController controller(std::move(initialPlanes), std::move(worms));
 
     controller.setStepDelay(32);
 
@@ -42,9 +40,8 @@ int main(int argc, char* argv[])
     renderTimer->setTimerType(Qt::PreciseTimer);
     renderTimer->setInterval(16);
     QObject::connect(renderTimer, &QTimer::timeout,
-                    canvas,      &CellularCanvas::refresh);
+                     canvas,      &CellularCanvas::refresh);
     renderTimer->start();
-
 
     QMap<uint8_t, QRgb> colorMap;
     colorMap[0] = qRgb(20,  20,  30);
