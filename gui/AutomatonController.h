@@ -35,6 +35,12 @@ public slots:
     void setStepDelay(size_t ms);
     void resetPlanes(Planes planes);
 
+signals:
+    /**
+     * @brief Сигнал, отправляемый при сбросе/замене набора плоскостей.
+     */
+    void planesReset(const Planes& planes);
+
 private:
     void run();
     bool shouldRender(size_t gen) noexcept;

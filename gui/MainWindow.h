@@ -1,7 +1,10 @@
 #pragma once
+
 #include <QMainWindow>
 #include <QMenu>
 #include <functional>
+#include <vector>
+#include <memory>
 #include "Planes.h"
 
 namespace ntcap {
@@ -13,6 +16,7 @@ class LoadPlanesAction;
 class SimulationActions;
 class ColorMapPresetsAction;
 class ColorMapFromFileAction;
+class DisplayStrategy;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -28,6 +32,11 @@ public:
 protected:
     void showEvent(QShowEvent* event) override;
 
+private slots:
+    void applyLoadedPlanes(const Planes& planes);
+    void onPlanesReset(const Planes& planes);
+    void updateDisplayModeActions(size_t activeIndex);
+
 private:
     // ── menu construction ───────────────────────────────
     void   buildMenuBar();
@@ -35,9 +44,10 @@ private:
     void   buildViewMenu();
     QMenu* addPlaceholderMenu(const QString& title);
 
+    void   rebuildDisplayModeMenu(size_t numPlanes);
+
     // ── planes helpers ──────────────────────────────────
     Planes snapshotCopy() const;
-    void   applyLoadedPlanes(const Planes& planes);
 
     // ── data ────────────────────────────────────────────
     CellularCanvas*      m_canvas     = nullptr;
@@ -55,8 +65,11 @@ private:
 
     // ── в секцию private members ──
     QMenu*                   m_viewMenu              = nullptr;
+    QMenu*                   m_displayModeMenu       = nullptr;
     ColorMapPresetsAction*   m_colorMapPresetsAction  = nullptr;
     ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
+
+    std::vector<QAction*>    m_displayActions;
 
     bool m_firstShow = true;
 };
