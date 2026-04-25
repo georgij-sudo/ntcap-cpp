@@ -23,6 +23,12 @@ add_executable(ntcap-gui
     recipes/Parity.cpp
     color_map/ColorMapPresets.cpp
     color_map/ColorMapPresetsDialog.cpp
+
+    # display strategies (new)
+    SinglePlaneStrategy.cpp
+    BitfieldStrategy.cpp
+    SaturatingSumStrategy.cpp
+    NormalizedSumStrategy.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)
@@ -37,4 +43,3 @@ target_link_libraries(ntcap-gui
         Qt6::Widgets
         ntcap
 )
-

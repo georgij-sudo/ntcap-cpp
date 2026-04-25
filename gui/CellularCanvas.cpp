@@ -82,6 +82,39 @@ void CellularCanvas::setZoomFactor(qreal v) noexcept  { m_zoomFactor = v; }
 QSize CellularCanvas::sizeHint() const        { return {640, 480}; }
 QSize CellularCanvas::minimumSizeHint() const  { return {120, 90};  }
 
+void CellularCanvas::setDisplayStrategies(std::vector<DisplayStrategyPtr> strategies) noexcept
+{
+    const size_t oldIndex = m_strategyIndex;
+    m_strategies = std::move(strategies);
+    if (m_strategies.empty())
+        m_strategyIndex = 0;
+    else if (oldIndex >= m_strategies.size())
+        m_strategyIndex = 0;
+    emit displayStrategyChanged(m_strategyIndex);
+    update();
+}
+
+void CellularCanvas::setDisplayStrategyIndex(size_t idx) noexcept
+{
+    if (idx >= m_strategies.size())
+        return;
+    if (m_strategyIndex == idx)
+        return;
+    m_strategyIndex = idx;
+    emit displayStrategyChanged(m_strategyIndex);
+    update();
+}
+
+size_t CellularCanvas::displayStrategyIndex() const noexcept
+{
+    return m_strategyIndex;
+}
+
+const std::vector<DisplayStrategyPtr>& CellularCanvas::availableDisplayStrategies() const noexcept
+{
+    return m_strategies;
+}
+
 void CellularCanvas::refresh()
 {
     if (!m_triple->consume())
@@ -211,17 +244,41 @@ void CellularCanvas::rebuildImage()
     }
 
     const Planes& planes = m_triple->readBuffer();
-    const std::span<const uint8_t> plane = planes.view(m_planeIndex);
 
-    const int w = static_cast<int>(m_fieldWidth);
-    const int h = static_cast<int>(m_fieldHeight);
+    if (m_strategies.empty()) {
+        const std::span<const uint8_t> plane = planes.view(m_planeIndex);
+        const int w = static_cast<int>(m_fieldWidth);
+        const int h = static_cast<int>(m_fieldHeight);
 
-    for (int y = 0; y < h; ++y) {
-        uint8_t*       dst = m_image.scanLine(y);
-        const uint8_t* src = plane.data()
-                             + static_cast<size_t>(y) * m_fieldWidth;
-        std::memcpy(dst, src, static_cast<size_t>(w));
+        for (int y = 0; y < h; ++y) {
+            uint8_t*       dst = m_image.scanLine(y);
+            const uint8_t* src = plane.data()
+                                 + static_cast<size_t>(y) * m_fieldWidth;
+            std::memcpy(dst, src, static_cast<size_t>(w));
+        }
+        return;
     }
+
+    auto& strategy = m_strategies[m_strategyIndex];
+    strategy->render(planes, m_image);
+}
+
+void CellularCanvas::cycleDisplayModeNext() noexcept
+{
+    if (m_strategies.empty())
+        return;
+    m_strategyIndex = (m_strategyIndex + 1) % m_strategies.size();
+    emit displayStrategyChanged(m_strategyIndex);
+    update();
+}
+
+void CellularCanvas::cycleDisplayModePrev() noexcept
+{
+    if (m_strategies.empty())
+        return;
+    m_strategyIndex = (m_strategyIndex + m_strategies.size() - 1) % m_strategies.size();
+    emit displayStrategyChanged(m_strategyIndex);
+    update();
 }
 
 } // namespace ntcap

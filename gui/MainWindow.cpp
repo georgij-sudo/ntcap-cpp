@@ -3,6 +3,7 @@
 #include <QMenuBar>
 #include <QAction>
 #include <QTimer>
+#include <QActionGroup>
 
 #include "CellularCanvas.h"
 #include "AutomatonController.h"
@@ -13,6 +14,12 @@
 #include "menu_bar/ColorMapFromFileAction.h"
 #include "ColorMapPresetsAction.h"
 #include "ColorMapPresetsDialog.h"
+
+#include "DisplayStrategy.h"
+#include "SinglePlaneStrategy.h"
+#include "BitfieldStrategy.h"
+#include "SaturatingSumStrategy.h"
+#include "NormalizedSumStrategy.h"
 
 namespace ntcap {
 
@@ -30,6 +37,11 @@ MainWindow::MainWindow(size_t fieldWidth, size_t fieldHeight,
     setCentralWidget(m_canvas);
 
     buildMenuBar();
+
+    if (m_controller) {
+        connect(m_controller, &AutomatonController::planesReset,
+                this,         &MainWindow::onPlanesReset);
+    }
 
     setWindowTitle("Parity CA (threaded)");
     resize(800, 600);
@@ -129,6 +141,16 @@ void MainWindow::buildViewMenu()
 
     m_viewMenu->addSeparator();
 
+    // ── Display Mode… ──
+    m_displayModeMenu = m_viewMenu->addMenu(tr("Display Mode\u2026"));
+
+    size_t initialNumPlanes = 1;
+    if (m_controller)
+        initialNumPlanes = m_controller->tripleBuffer().readBuffer().numPlanes();
+    rebuildDisplayModeMenu(initialNumPlanes);
+
+    m_viewMenu->addSeparator();
+
     // ── Color Map… ──
     m_colorMapPresetsAction = new ColorMapPresetsAction(
         m_canvas, this, this);
@@ -146,6 +168,63 @@ QMenu* MainWindow::addPlaceholderMenu(const QString& title)
     QAction* placeholder = menu->addAction(tr("Coming soon\u2026"));
     placeholder->setEnabled(false);
     return menu;
+}
+
+void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
+{
+    if (numPlanes == 0)
+        numPlanes = 1;
+
+    m_displayModeMenu->clear();
+    m_displayActions.clear();
+
+    QActionGroup* group = new QActionGroup(this);
+    group->setExclusive(true);
+
+    std::vector<DisplayStrategyPtr> strategies;
+    strategies.reserve(numPlanes + 3);
+
+    for (size_t i = 0; i < numPlanes; ++i) {
+        strategies.push_back(std::make_shared<SinglePlaneStrategy>(i));
+    }
+    strategies.push_back(std::make_shared<BitfieldStrategy>());
+    strategies.push_back(std::make_shared<SaturatingSumStrategy>());
+    strategies.push_back(std::make_shared<NormalizedSumStrategy>());
+
+    m_canvas->setDisplayStrategies(std::move(strategies));
+
+    const auto& avail = m_canvas->availableDisplayStrategies();
+    for (size_t i = 0; i < avail.size(); ++i) {
+        QAction* a = m_displayModeMenu->addAction(avail[i]->name());
+        a->setCheckable(true);
+        a->setActionGroup(group);
+        const size_t idx = i;
+        connect(a, &QAction::triggered, this, [this, idx]() {
+            m_canvas->setDisplayStrategyIndex(idx);
+        });
+        m_displayActions.push_back(a);
+    }
+
+    // initial check
+    const size_t current = m_canvas->displayStrategyIndex();
+    if (current < m_displayActions.size())
+        m_displayActions[current]->setChecked(true);
+
+    // подписываемся на изменение из canvas (через клавиатуру/другие внешние события)
+    connect(m_canvas, &CellularCanvas::displayStrategyChanged,
+            this,      &MainWindow::updateDisplayModeActions);
+}
+
+void MainWindow::onPlanesReset(const Planes& planes)
+{
+    rebuildDisplayModeMenu(planes.numPlanes());
+}
+
+void MainWindow::updateDisplayModeActions(size_t activeIndex)
+{
+    for (size_t i = 0; i < m_displayActions.size(); ++i) {
+        m_displayActions[i]->setChecked(i == activeIndex);
+    }
 }
 
 } // namespace ntcap

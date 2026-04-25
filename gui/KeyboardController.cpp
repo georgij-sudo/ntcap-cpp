@@ -17,6 +17,10 @@ KeyboardController::KeyboardController(CellularCanvas* canvas,
     addShortcut(QKeySequence(Qt::Key_Right), canvas, &CellularCanvas::panRight);
     addShortcut(QKeySequence(Qt::Key_Up),    canvas, &CellularCanvas::panUp);
     addShortcut(QKeySequence(Qt::Key_Down),  canvas, &CellularCanvas::panDown);
+
+    // ── Display mode cycling ────────────────────────────
+    addShortcut(QKeySequence(Qt::Key_M),                 canvas, &CellularCanvas::cycleDisplayModeNext);
+    addShortcut(QKeySequence(Qt::SHIFT | Qt::Key_M),     canvas, &CellularCanvas::cycleDisplayModePrev);
 }
 
 KeyboardController::~KeyboardController()

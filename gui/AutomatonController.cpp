@@ -63,6 +63,7 @@ void AutomatonController::resetPlanes(Planes planes)
     m_current = std::move(planes);
     m_generation = 0;
     m_automaton->setCurrent(m_current);
+    emit planesReset(m_current);
     publishSnapshot();
 }
 
