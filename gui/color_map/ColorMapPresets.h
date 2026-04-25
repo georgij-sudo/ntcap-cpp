@@ -23,9 +23,15 @@ public:
     static QList<ColorMapPreset> all();
 
 private:
+    // 2
     static ColorMap binary();
     static ColorMap alive();
     static ColorMap espresso();
+
+    // 4
+    static ColorMap aliveHistory();
+
+    // 16 or more
     static ColorMap grayscale16();
     static ColorMap grayscale();
     static ColorMap heat();

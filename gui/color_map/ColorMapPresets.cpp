@@ -9,8 +9,9 @@ QList<ColorMapPreset> ColorMapPresets::all()
 {
     return {
         { QStringLiteral("Black & White (2)"),  binary()      },
-        { QStringLiteral("Black & Green (2))"), alive()       },
+        { QStringLiteral("Alive (2)"), alive()       },
         { QStringLiteral("Espresso (2)"),       espresso()    },
+        { QStringLiteral("Alive w/ History (4)"),     aliveHistory() },
         { QStringLiteral("Grayscale (16)"),     grayscale16() },
         { QStringLiteral("Grayscale (256)"),    grayscale()   },
         { QStringLiteral("Heat (256)"),         heat()        },
@@ -38,6 +39,15 @@ ColorMap ColorMapPresets::espresso() {
     ColorMap m;
     m[0] = qRgb(0x3E, 0x27, 0x23);
     m[1] = qRgb(0xF0, 0x66, 0x0A);
+    return m;
+}
+
+ColorMap ColorMapPresets::aliveHistory() {
+    ColorMap m;
+    m[0] = qRgb(0x00, 0x00, 0x00);
+    m[1] = qRgb(0x00, 0xFF, 0x00);
+    m[2] = qRgb(0xFF, 0x00, 0x00);
+    m[3] = qRgb(0x00, 0x00, 0xFF);
     return m;
 }
 
