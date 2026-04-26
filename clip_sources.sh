@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 usage() {
     cat <<EOF
 Использование:
-  $(basename "$0") [-h|--headers | -cpp|--cpp] <directory>
+  $(basename "$0") [-h|--headers | -c|--cpp | -a|--all] <dir1> [dir2] ...
 
 Описание:
-  -h, --headers    Рекурсивно копировать только файлы с расширением .h  (по умолчанию)
-  -cpp, --cpp      Рекурсивно копировать файлы .h, .cpp и CMakeLists.txt
+  -h, --headers    Рекурсивно копировать только файлы .h            (по умолчанию)
+  -c, --cpp        Рекурсивно копировать файлы .cpp и CMakeLists.txt
+  -a, --all        Рекурсивно копировать файлы .h, .cpp и CMakeLists.txt
 
-Поведение:
-  - Перед содержимым каждого файла добавляется строка-комментарий с относительным путём
-    файла от переданного каталога, например: // src/MyClass.h
-  - Между файлами добавляется пустая строка.
-  - Итоговый буфер отправляется в системный буфер обмена через xclip (selection clipboard).
-  - Если совпадений нет — скрипт завершится с кодом 1.
-  - В случае ошибок окружения (например, xclip отсутствует) — код 2.
+Примеры:
+  $(basename "$0") -h gui/ lib/
+  $(basename "$0") --all gui/ lib/ tests/
+  $(basename "$0") lib/
 EOF
 }
 
@@ -31,31 +31,64 @@ check_xclip() {
     fi
 }
 
-normalize_dir() {
-    local d="$1"
-    # Удалить завершающий слэш, если есть
-    printf '%s' "${d%/}"
+is_git_repo() {
+    command -v git >/dev/null 2>&1 \
+        && git -C "$PROJECT_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1
 }
 
+filter_git_ignored() {
+    local -n _input=$1
+    local -n _output=$2
+    _output=()
+
+    if [[ ${#_input[@]} -eq 0 ]]; then
+        return
+    fi
+
+    local -A ignored_set=()
+    local ignored_line
+
+    while IFS= read -r -d '' ignored_line; do
+        ignored_set["$ignored_line"]=1
+    done < <(
+        printf '%s\0' "${_input[@]}" \
+            | git -C "$PROJECT_ROOT" check-ignore --stdin -z 2>/dev/null \
+            || true
+    )
+
+    for f in "${_input[@]}"; do
+        if [[ -z "${ignored_set[$f]+x}" ]]; then
+            _output+=("$f")
+        fi
+    done
+}
+
+# ─── Разбор аргументов ───
 if [[ $# -lt 1 ]]; then
     usage
     exit 2
 fi
 
 flag=""
-dir_arg=""
+dirs=()
 
 if [[ "$1" == -* ]]; then
     flag="$1"
-    if [[ $# -lt 2 ]]; then
-        usage
-        exit 2
-    fi
-    dir_arg="$2"
+    shift
 else
     flag="-h"
-    dir_arg="$1"
 fi
+
+if [[ $# -lt 1 ]]; then
+    echo "Ошибка: не указана ни одна директория." >&2
+    usage
+    exit 2
+fi
+
+while [[ $# -gt 0 ]]; do
+    dirs+=("$1")
+    shift
+done
 
 case "$flag" in
     -h|--headers)
@@ -74,51 +107,82 @@ case "$flag" in
         ;;
 esac
 
-if [[ ! -d "$dir_arg" ]]; then
-    error_exit "Ошибка: каталог '$dir_arg' не существует или не является каталогом." 2
-fi
-
-dir=$(normalize_dir "$dir_arg")
+for d in "${dirs[@]}"; do
+    if [[ ! -d "$d" ]]; then
+        error_exit "Ошибка: каталог '$d' не существует или не является каталогом." 2
+    fi
+done
 
 check_xclip
 
-TMPFILE=$(mktemp)
-cleanup() {
-    rm -f -- "$TMPFILE"
-}
-trap cleanup EXIT
+use_git_ignore=false
+if is_git_repo; then
+    use_git_ignore=true
+fi
 
-# Собираем список файлов (безопасно для пробелов и спецсимволов)
-# Сортировка делает поведение детерминированным, но порядок не критичен.
-mapfile -d '' -t files < <(find "$dir" -type f \( "${find_expr[@]}" \) -print0 2>/dev/null | sort -z)
+# ─── Преобразуем директории в абсолютные пути ОДИН раз ───
+abs_dirs=()
+for d in "${dirs[@]}"; do
+    abs_dirs+=("$(cd "$d" && pwd)")
+done
+
+# ─── Сбор файлов (find по абсолютным путям → результат тоже абсолютный) ───
+raw_files=()
+for dir in "${abs_dirs[@]}"; do
+    if [[ "$use_git_ignore" == true ]]; then
+        mapfile -d '' -t chunk < <(
+            find "$dir" -type f \( "${find_expr[@]}" \) -print0 2>/dev/null
+        )
+    else
+        mapfile -d '' -t chunk < <(
+            find "$dir" -type f \( "${find_expr[@]}" \) \
+                -not -path '*/build/*' \
+                -print0 2>/dev/null
+        )
+    fi
+    raw_files+=("${chunk[@]}")
+done
+
+mapfile -d '' -t sorted_files < <(
+    printf '%s\0' "${raw_files[@]}" | sort -z
+)
+
+if [[ "$use_git_ignore" == true ]]; then
+    filter_git_ignored sorted_files files
+else
+    files=("${sorted_files[@]}")
+fi
 
 if [[ "${#files[@]}" -eq 0 ]]; then
-    echo "Файлы не найдены по заданному шаблону в каталоге '$dir'." >&2
+    echo "Файлы не найдены по заданному шаблону в каталогах: ${dirs[*]}" >&2
     exit 1
 fi
 
-first=true
-for f in "${files[@]}"; do
-    # Относительный путь от переданного каталога
-    rel="${f#$dir/}"
-    if [[ "$rel" == "$f" ]]; then
-        rel="$f"
-    fi
+# ─── Формирование буфера: ноль subshell в цикле, один open на файл ───
+TMPFILE=$(mktemp)
+cleanup() { rm -f -- "$TMPFILE"; }
+trap cleanup EXIT
 
-    if [[ "$first" == true ]]; then
-        first=false
-    else
-        printf '\n' >> "$TMPFILE"
-    fi
+prefix="$PROJECT_ROOT/"
 
-    printf '// %s\n' "$rel" >> "$TMPFILE"
-    cat -- "$f" >> "$TMPFILE"
-done
+{
+    first=true
+    for f in "${files[@]}"; do
+        rel="${f#"$prefix"}"
 
-# Копируем в буфер обмена (selection clipboard)
+        if [[ "$first" == true ]]; then
+            first=false
+        else
+            printf '\n'
+        fi
+
+        printf '// %s\n' "$rel"
+        cat -- "$f"
+    done
+} > "$TMPFILE"
+
 if ! xclip -selection clipboard < "$TMPFILE"; then
-    echo "Ошибка: xclip завершился с ошибкой." >&2
-    exit 2
+    error_exit "Ошибка: xclip завершился с ошибкой." 2
 fi
 
 exit 0
