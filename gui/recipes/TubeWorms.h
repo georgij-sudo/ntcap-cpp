@@ -12,15 +12,6 @@
 
 namespace ntcap {
 
-/**
- * @brief TubeWorms cellular automaton (non-owning Planes).
- *
- * Plane 0: worm/body (0 or 1)
- * Plane 1: alarm (0 or 1)
- * Plane 2: countdown/timer (0..3)
- *
- * The constructor signature matches LifeHistory.
- */
 class TubeWorms : public Automaton {
     Q_OBJECT
 public:
@@ -28,6 +19,7 @@ public:
     ~TubeWorms() override;
 
     void step() override;
+    void setCurrent(Planes& current) override;
     QString description() const override;
     QString name() const override;
 

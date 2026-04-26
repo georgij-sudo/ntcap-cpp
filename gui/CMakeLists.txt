@@ -8,17 +8,17 @@ add_executable(ntcap-gui
     MouseController.cpp
     Automaton.cpp
     MainWindow.cpp
-    PlaneInitializer.cpp                    # NEW
+    PlaneInitializer.cpp
     converters/PlanesConverter.cpp
     converters/CsvPlanesConverter.cpp
     converters/RlePlanesConverter.cpp
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
-    menu_bar/InitializeActions.cpp          # NEW
-    menu_bar/RandomInitDialog.cpp           # NEW
-    menu_bar/SquareInitDialog.cpp           # NEW
-    menu_bar/CircleInitDialog.cpp           # NEW
+    menu_bar/InitializeActions.cpp
+    menu_bar/RandomInitDialog.cpp
+    menu_bar/SquareInitDialog.cpp
+    menu_bar/CircleInitDialog.cpp
     menu_bar/ColorMapFromFileAction.cpp
     menu_bar/ColorMapPresetsAction.cpp
     menu_bar/RecipeActions.cpp
@@ -44,6 +44,8 @@ add_executable(ntcap-gui
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp
     StatusBarManager.cpp
+    recipes/RecipePresetRegistry.cpp    #(NEW)
+    recipes/RecipePresetDialog.cpp      #(NEW)
 )
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)

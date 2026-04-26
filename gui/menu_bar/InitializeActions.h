@@ -14,9 +14,9 @@ namespace ntcap {
 class AutomatonController;
 
 /**
- * @brief Manages the Planes → Initialize… submenu.
+ * @brief Manages the Planes -> Initialize... submenu.
  *
- * Items: This Recipe… (stub), Random…, Square…, Circle….
+ * Items: This Recipe..., Random..., Square..., Circle....
  */
 class InitializeActions final : public QObject {
     Q_OBJECT
@@ -37,6 +37,7 @@ public:
     QMenu* menu() const noexcept;
 
 private slots:
+    void onRecipeTriggered();
     void onRandomTriggered();
     void onSquareTriggered();
     void onCircleTriggered();

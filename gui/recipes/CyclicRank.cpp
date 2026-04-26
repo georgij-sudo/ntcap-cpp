@@ -60,6 +60,12 @@ void CyclicRank::step()
     commit();
 }
 
+void CyclicRank::setCurrent(Planes& current)
+{
+    Automaton::setCurrent(current);
+    m_topo = TorusTopology(current.width(), current.height());
+}
+
 QString CyclicRank::name() const
 {
     return QStringLiteral("CyclicRank(%1, %2%)")

@@ -13,6 +13,7 @@ public:
     ~Life() override;
 
     void step() override;
+    void setCurrent(Planes& current) override;
     QString name() const override;
     QString description() const override;
 

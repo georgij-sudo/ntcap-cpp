@@ -6,17 +6,6 @@
 
 namespace ntcap {
 
-/**
- * @brief CyclicRank — cyclic automaton with probabilistic Von Neumann rule.
- *
- * Single plane. Cell states in [0, statesCount).
- * On each step, with probability (probability/100), a cell transitions
- * to the next cyclic state if at least one Von Neumann neighbour
- * already has that state.
- *
- * @param statesCount  number of cyclic states (>= 2).
- * @param probability  percent chance per cell per step, [0..100].
- */
 class CyclicRank final : public Automaton {
     Q_OBJECT
 public:
@@ -27,6 +16,7 @@ public:
     ~CyclicRank() override;
 
     void step() override;
+    void setCurrent(Planes& current) override;
     QString name() const override;
     QString description() const override;
 

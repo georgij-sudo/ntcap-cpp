@@ -49,6 +49,11 @@ void TimeTunnel::step()
     commit();
 }
 
+void TimeTunnel::setCurrent(Planes& current) {
+    Automaton::setCurrent(current);
+    m_topo = TorusTopology(current.width(), current.height());
+}
+
 QString TimeTunnel::name() const
 {
     return QStringLiteral("TimeTunnel");
