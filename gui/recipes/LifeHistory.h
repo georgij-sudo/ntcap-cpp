@@ -21,6 +21,7 @@ public:
     ~LifeHistory() override;
 
     void step() override;
+    QString name() const override;
 
     /**
      * Read-only view of the previous generation (plane 1).

@@ -61,7 +61,10 @@ case "$flag" in
     -h|--headers)
         find_expr=( -name '*.h' )
         ;;
-    -cpp|--cpp)
+    -c|--cpp)
+        find_expr=( -name '*.cpp' -o -name 'CMakeLists.txt' )
+        ;;
+    -a|--all)
         find_expr=( -name '*.h' -o -name '*.cpp' -o -name 'CMakeLists.txt' )
         ;;
     *)

@@ -12,4 +12,9 @@ StableTubeWorms::StableTubeWorms(Planes& current, QObject* parent)
 {
 }
 
+QString StableTubeWorms::name() const
+{
+    return QStringLiteral("StableTubeWorms");
+}
+
 } // namespace ntcap

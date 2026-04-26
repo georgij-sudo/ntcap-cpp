@@ -11,6 +11,11 @@ Automaton::Automaton(Planes& current, QObject* parent)
 
 Automaton::~Automaton() = default;
 
+QString Automaton::name() const
+{
+    return QStringLiteral("Unknown");
+}
+
 void Automaton::commit()
 {
     std::swap(*m_current, *m_tmp);

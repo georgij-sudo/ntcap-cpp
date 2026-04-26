@@ -10,6 +10,11 @@ Life::Life(Planes& current, QObject* parent)
 
 Life::~Life() = default;
 
+QString Life::name() const
+{
+    return QStringLiteral("Life");
+}
+
 void Life::step()
 {
     const size_t W = current().width();
@@ -34,18 +39,17 @@ void Life::step()
             const size_t colE = m_topo.wrapX(px + 1);
 
             const uint8_t alive =
-                (cur[rowN + colW] != 0) +   // NW
-                (cur[rowN + x   ] != 0) +   // N
-                (cur[rowN + colE] != 0) +   // NE
-                (cur[rowC + colW] != 0) +   // W
-                (cur[rowC + colE] != 0) +   // E
-                (cur[rowS + colW] != 0) +   // SW
-                (cur[rowS + x   ] != 0) +   // S
-                (cur[rowS + colE] != 0);    // SE
+                (cur[rowN + colW] != 0) +
+                (cur[rowN + x   ] != 0) +
+                (cur[rowN + colE] != 0) +
+                (cur[rowC + colW] != 0) +
+                (cur[rowC + colE] != 0) +
+                (cur[rowS + colW] != 0) +
+                (cur[rowS + x   ] != 0) +
+                (cur[rowS + colE] != 0);
 
             const size_t idx = rowC + x;
 
-            // B3/S23
             if (cur[idx] != 0)
                 next[idx] = (alive == 2 || alive == 3) ? 1 : 0;
             else

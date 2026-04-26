@@ -3,7 +3,10 @@
 #include "TrailPostProcessor.h"
 #include "AntiflickerPostProcessor.h"
 #include "GrayscalePostProcessor.h"
+#include "StatusBarManager.h"
+
 #include <QMenuBar>
+#include <QToolBar>
 #include <QAction>
 #include <QTimer>
 #include <QActionGroup>
@@ -26,8 +29,6 @@
 
 namespace ntcap {
 
-// ── ctor ────────────────────────────────────────────────
-
 MainWindow::MainWindow(size_t fieldWidth, size_t fieldHeight,
                        AutomatonController* controller,
                        QWidget* parent)
@@ -46,8 +47,10 @@ MainWindow::MainWindow(size_t fieldWidth, size_t fieldHeight,
                 this,         &MainWindow::onPlanesReset);
     }
 
+    buildInfoBar();
+
     setWindowTitle("Parity CA (threaded)");
-    resize(800, 600);
+    resize(1280, 720);
 }
 
 CellularCanvas* MainWindow::canvas() const noexcept
@@ -71,14 +74,11 @@ void MainWindow::showEvent(QShowEvent* event)
     }
 }
 
-// ── private: planes helpers ─────────────────────────────
-
 Planes MainWindow::snapshotCopy() const
 {
-    // consume() + копия из read-буфера — без мьютекса
     auto& tb = m_controller->tripleBuffer();
-    tb.consume();                       // забираем свежее (если есть)
-    return tb.readBuffer();             // копия (Planes copy ctor)
+    tb.consume();
+    return tb.readBuffer();
 }
 
 void MainWindow::applyLoadedPlanes(const Planes& planes)
@@ -95,8 +95,6 @@ void MainWindow::applyLoadedPlanes(const Planes& planes)
         m_simulationActions->play();
 }
 
-// ── private: menu construction ──────────────────────────
-
 void MainWindow::buildMenuBar()
 {
     buildPlanesMenu();
@@ -105,8 +103,7 @@ void MainWindow::buildMenuBar()
     m_simulationActions = new SimulationActions(
         m_controller, m_canvas,
         m_fieldWidth, m_fieldHeight,
-        this,   // dialogParent
-        this);  // QObject parent
+        this, this);
     menuBar()->addMenu(m_simulationActions->menu());
 
     buildViewMenu();
@@ -116,13 +113,11 @@ void MainWindow::buildPlanesMenu()
 {
     m_planesMenu = menuBar()->addMenu(tr("Planes"));
 
-    // ── Open ──
     m_loadAction = new LoadPlanesAction(this, this);
     m_planesMenu->addAction(m_loadAction->action());
     connect(m_loadAction, &LoadPlanesAction::planesLoaded,
             this,         &MainWindow::applyLoadedPlanes);
 
-    // ── Save As ──
     m_saveAction = new SavePlanesAction(
         [this]() -> Planes { return snapshotCopy(); },
         this, this);
@@ -133,18 +128,15 @@ void MainWindow::buildViewMenu()
 {
     m_viewMenu = menuBar()->addMenu(tr("View"));
 
-    // ── Fullscreen (заглушка) ──
     QAction* fullscreen = m_viewMenu->addAction(tr("Fullscreen"));
     fullscreen->setShortcut(QKeySequence(Qt::Key_F11));
     fullscreen->setEnabled(false);
 
-    // ── Theme (заглушка) ──
     QAction* theme = m_viewMenu->addAction(tr("Theme\u2026"));
     theme->setEnabled(false);
 
     m_viewMenu->addSeparator();
 
-    // ── Display Mode… ──
     m_displayModeMenu = m_viewMenu->addMenu(tr("Display Mode\u2026"));
 
     size_t initialNumPlanes = 1;
@@ -154,12 +146,10 @@ void MainWindow::buildViewMenu()
 
     m_viewMenu->addSeparator();
 
-    // ── Color Map… ──
     m_colorMapPresetsAction = new ColorMapPresetsAction(
         m_canvas, this, this);
     m_viewMenu->addAction(m_colorMapPresetsAction->action());
 
-    // ── Color Map from file… ──
     m_colorMapFromFileAction = new ColorMapFromFileAction(
         m_canvas, this, this);
     m_viewMenu->addAction(m_colorMapFromFileAction->action());
@@ -210,12 +200,10 @@ void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
         m_displayActions.push_back(a);
     }
 
-    // initial check
     const size_t current = m_canvas->displayStrategyIndex();
     if (current < m_displayActions.size())
         m_displayActions[current]->setChecked(true);
 
-    // подписываемся на изменение из canvas (через клавиатуру/другие внешние события)
     connect(m_canvas, &CellularCanvas::displayStrategyChanged,
             this,      &MainWindow::updateDisplayModeActions);
 }
@@ -231,9 +219,6 @@ void MainWindow::updateDisplayModeActions(size_t activeIndex)
         m_displayActions[i]->setChecked(i == activeIndex);
     }
 }
-
-// ─── Новый метод: добавить в MainWindow.cpp ─────────────
-// (Полная реализация)
 
 void MainWindow::buildPostProcessingMenu()
 {
@@ -256,6 +241,23 @@ void MainWindow::buildPostProcessingMenu()
     m_grayscaleAction->setChecked(false);
     connect(m_grayscaleAction, &QAction::toggled,
             m_canvas, &CellularCanvas::setGrayscaleEnabled);
+}
+
+void MainWindow::buildInfoBar()
+{
+    m_infoBar = new QToolBar(tr("Info"), this);
+    m_infoBar->setMovable(false);
+    m_infoBar->setFloatable(false);
+    m_infoBar->setAllowedAreas(Qt::TopToolBarArea);
+    m_infoBar->toggleViewAction()->setEnabled(false);
+    addToolBar(Qt::TopToolBarArea, m_infoBar);
+
+    m_statusBarManager = new StatusBarManager(
+        m_infoBar,
+        m_controller,
+        m_canvas,
+        m_simulationActions,
+        this);
 }
 
 } // namespace ntcap
