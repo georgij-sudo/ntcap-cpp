@@ -1,3 +1,4 @@
+// gui/MainWindow.h
 #pragma once
 
 #include <QMainWindow>
@@ -5,6 +6,7 @@
 #include <functional>
 #include <vector>
 #include <memory>
+
 #include "Planes.h"
 
 namespace ntcap {
@@ -20,6 +22,7 @@ class DisplayStrategy;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
+
 public:
     explicit MainWindow(size_t fieldWidth, size_t fieldHeight,
                         AutomatonController* controller,
@@ -42,8 +45,8 @@ private:
     void   buildMenuBar();
     void   buildPlanesMenu();
     void   buildViewMenu();
+    void   buildPostProcessingMenu();
     QMenu* addPlaceholderMenu(const QString& title);
-
     void   rebuildDisplayModeMenu(size_t numPlanes);
 
     // ── planes helpers ──────────────────────────────────
@@ -63,13 +66,17 @@ private:
     LoadPlanesAction*  m_loadAction        = nullptr;
     SimulationActions* m_simulationActions = nullptr;
 
-    // ── в секцию private members ──
     QMenu*                   m_viewMenu              = nullptr;
     QMenu*                   m_displayModeMenu       = nullptr;
     ColorMapPresetsAction*   m_colorMapPresetsAction  = nullptr;
     ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
-
     std::vector<QAction*>    m_displayActions;
+
+    // ── post-processing menu ────────────────────────────
+    QMenu*   m_postProcessingMenu   = nullptr;
+    QAction* m_trailAction          = nullptr;
+    QAction* m_antiflickerAction    = nullptr;
+    QAction* m_grayscaleAction      = nullptr;
 
     bool m_firstShow = true;
 };

@@ -6,6 +6,10 @@
 #include <cmath>
 #include <algorithm>
 
+#include "TrailPostProcessor.h"
+#include "AntiflickerPostProcessor.h"
+#include "GrayscalePostProcessor.h"
+
 namespace ntcap {
 
 CellularCanvas::CellularCanvas(QWidget* parent)
@@ -47,6 +51,8 @@ void CellularCanvas::setFieldSize(size_t width, size_t height)
     m_image = QImage(static_cast<int>(width),
                      static_cast<int>(height),
                      QImage::Format_Indexed8);
+    resetPostProcessors();
+
     rebuildColorTable();
     m_image.fill(0);
     m_fitPending = true;
@@ -120,6 +126,7 @@ void CellularCanvas::refresh()
     if (!m_triple->consume())
         return;
     rebuildImage();
+    applyPostProcessing();
     update();
 }
 
@@ -199,7 +206,9 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
     );
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
-    painter.drawImage(targetRect, m_image, sourceRect);
+
+    const QImage& toDraw = m_processedImage.isNull() ? m_image : m_processedImage;
+    painter.drawImage(targetRect, toDraw, sourceRect);
 }
 
 void CellularCanvas::fitToWindow()
@@ -279,6 +288,90 @@ void CellularCanvas::cycleDisplayModePrev() noexcept
     m_strategyIndex = (m_strategyIndex + m_strategies.size() - 1) % m_strategies.size();
     emit displayStrategyChanged(m_strategyIndex);
     update();
+}
+
+// ─── Новые методы: добавить в CellularCanvas.cpp ────────
+// (Полные реализации всех post-processing методов)
+
+void CellularCanvas::applyPostProcessing()
+{
+    if (m_image.isNull())
+        return;
+
+    m_processedImage = m_image.convertToFormat(QImage::Format_ARGB32);
+
+    if (m_trailEnabled)
+        m_trailProcessor.process(m_processedImage);
+
+    if (m_antiflickerEnabled)
+        m_antiflickerProcessor.process(m_processedImage);
+
+    if (m_grayscaleEnabled)
+        m_grayscaleProcessor.process(m_processedImage);
+}
+
+void CellularCanvas::setTrailEnabled(bool enabled) noexcept
+{
+    if (m_trailEnabled == enabled)
+        return;
+    m_trailEnabled = enabled;
+    if (!enabled)
+        m_trailProcessor.reset();
+    applyPostProcessing();
+    update();
+}
+
+bool CellularCanvas::isTrailEnabled() const noexcept
+{
+    return m_trailEnabled;
+}
+
+void CellularCanvas::setTrailDecay(double decay)
+{
+    m_trailProcessor.setDecay(decay);
+}
+
+void CellularCanvas::setAntiflickerEnabled(bool enabled) noexcept
+{
+    if (m_antiflickerEnabled == enabled)
+        return;
+    m_antiflickerEnabled = enabled;
+    if (!enabled)
+        m_antiflickerProcessor.reset();
+    applyPostProcessing();
+    update();
+}
+
+bool CellularCanvas::isAntiflickerEnabled() const noexcept
+{
+    return m_antiflickerEnabled;
+}
+
+void CellularCanvas::setAntiflickerAlpha(double alpha)
+{
+    m_antiflickerProcessor.setAlpha(alpha);
+}
+
+void CellularCanvas::setGrayscaleEnabled(bool enabled) noexcept
+{
+    if (m_grayscaleEnabled == enabled)
+        return;
+    m_grayscaleEnabled = enabled;
+    applyPostProcessing();
+    update();
+}
+
+bool CellularCanvas::isGrayscaleEnabled() const noexcept
+{
+    return m_grayscaleEnabled;
+}
+
+void CellularCanvas::resetPostProcessors() noexcept
+{
+    m_trailProcessor.reset();
+    m_antiflickerProcessor.reset();
+    m_grayscaleProcessor.reset();
+    m_processedImage = QImage{};
 }
 
 } // namespace ntcap
