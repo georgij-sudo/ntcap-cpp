@@ -1,5 +1,7 @@
 #include "RecipePresetRegistry.h"
 
+#include "PlaintextPlanesConverter.h"
+
 #include <cstring>
 #include <random>
 #include <utility>
@@ -211,6 +213,40 @@ QList<RecipePreset> RecipePresetRegistry::lifePresets()
                     QStringLiteral("Random fill with 25% density.\n"
                                    "Field: 200x200."),
                     std::move(p)});
+    }
+    {
+        static const std::string SIMKIN_GUN =
+            "OO.....OO........................\n"
+            "OO.....OO........................\n"
+            ".................................\n"
+            "....OO...........................\n"
+            "....OO...........................\n"
+            ".................................\n"
+            ".................................\n"
+            ".................................\n"
+            ".................................\n"
+            "......................OO.OO......\n"
+            ".....................O.....O.....\n"
+            ".....................O......O..OO\n"
+            ".....................OOO...O...OO\n"
+            "..........................O......\n"
+            ".................................\n"
+            ".................................\n"
+            ".................................\n"
+            "....................OO...........\n"
+            "....................O............\n"
+            ".....................OOO.........\n"
+            ".......................O.........\n";
+
+        auto p = PlaintextPlanesConverter::fromString(
+            SIMKIN_GUN, size_t{200}, size_t{200}, size_t{1});
+
+        out.append(RecipePreset{
+            QStringLiteral("Simkin Glider Gun"),
+            QStringLiteral("Period-120 glider gun discovered by Michael Simkin (2015).\n"
+                           "Produces two glider streams.\n"
+                           "Field: 200x200."),
+            std::move(p)});
     }
 
     return out;
