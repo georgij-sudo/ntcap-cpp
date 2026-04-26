@@ -17,6 +17,7 @@ class AutomatonController;
 class SavePlanesAction;
 class LoadPlanesAction;
 class SimulationActions;
+class RecipeActions;
 class ColorMapPresetsAction;
 class ColorMapFromFileAction;
 class DisplayStrategy;
@@ -41,6 +42,7 @@ private slots:
     void applyLoadedPlanes(const Planes& planes);
     void onPlanesReset(const Planes& planes);
     void updateDisplayModeActions(size_t activeIndex);
+    void onSwapPlanesTriggered();
 
 private:
     void   buildMenuBar();
@@ -60,10 +62,12 @@ private:
     size_t m_fieldHeight = 0;
 
     QMenu*             m_planesMenu        = nullptr;
-    QMenu*             m_recipesMenu       = nullptr;
     SavePlanesAction*  m_saveAction        = nullptr;
     LoadPlanesAction*  m_loadAction        = nullptr;
     SimulationActions* m_simulationActions = nullptr;
+    QAction*           m_swapPlanesAction  = nullptr;
+
+    RecipeActions*     m_recipeActions     = nullptr;
 
     QMenu*                   m_viewMenu              = nullptr;
     QMenu*                   m_displayModeMenu       = nullptr;

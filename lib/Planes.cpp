@@ -71,4 +71,22 @@ size_t Planes::numPlanes() const noexcept {
     return m_numPlanes;
 }
 
+void Planes::swapPlanes(size_t a, size_t b)
+{
+    if (a >= m_numPlanes)
+        throw std::out_of_range(
+            "Planes::swapPlanes: index a (" + std::to_string(a)
+            + ") >= numPlanes (" + std::to_string(m_numPlanes) + ")");
+    if (b >= m_numPlanes)
+        throw std::out_of_range(
+            "Planes::swapPlanes: index b (" + std::to_string(b)
+            + ") >= numPlanes (" + std::to_string(m_numPlanes) + ")");
+    if (a == b)
+        return;
+
+    uint8_t* pa = m_data.data() + a * m_size;
+    uint8_t* pb = m_data.data() + b * m_size;
+    std::swap_ranges(pa, pa + m_size, pb);
+}
+
 } // namespace ntcap

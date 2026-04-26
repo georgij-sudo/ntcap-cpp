@@ -33,6 +33,43 @@ QString TubeWorms::name() const
     return QStringLiteral("TubeWorms");
 }
 
+QString TubeWorms::description() const
+{
+    return QStringLiteral(
+        "<h2>TubeWorms</h2>"
+        "<p>A three-plane cellular automaton that produces organic, tube-like structures.</p>"
+        "<h3>Planes</h3>"
+        "<table border='1' cellpadding='4' cellspacing='0'>"
+        "<tr><th>Plane</th><th>Meaning</th><th>Values</th></tr>"
+        "<tr><td>0</td><td>Worm body</td><td>0 or 1</td></tr>"
+        "<tr><td>1</td><td>Alarm signal</td><td>0 or 1</td></tr>"
+        "<tr><td>2</td><td>Countdown timer</td><td>0, 1, 2, 3</td></tr>"
+        "</table>"
+        "<h3>Rule</h3>"
+        "<p>"
+        "Let <i>n</i> = count of Moore neighbours with body = 1.<br>"
+        "Let <i>t</i> = current countdown value."
+        "</p>"
+        "<p>"
+        "WORM lookup: [1, 0, 0, 0] — body is alive only when timer = 0.<br>"
+        "TIMER lookup: [0, 0, 1, 2] — timer counts down each step."
+        "</p>"
+        "<p>"
+        "new_body = WORM[t]<br>"
+        "new_alarm = alarm_mask[n]<br>"
+        "new_timer = (body = 1 ∧ alarm = 1) ? 3 : TIMER[t]"
+        "</p>"
+        "<h3>Alarm mask</h3>"
+        "<p>The alarm mask is an array of 9 booleans indexed by neighbour count. "
+        "Different masks produce different worm morphologies. "
+        "The base TubeWorms uses an all-false mask (no alarm). "
+        "See <i>StableTubeWorms</i> for a predefined variant.</p>"
+        "<h3>Topology</h3>"
+        "<p>Torus (wrapping edges).</p>"
+        "<p>Requires <b>3</b> planes.</p>"
+    );
+}
+
 void TubeWorms::step()
 {
     const size_t W = current().width();

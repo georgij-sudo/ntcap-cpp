@@ -13,10 +13,10 @@ namespace ntcap {
 class Planes {
 public:
     /**
-     * Creates Planes with (widht, height) dimensions 
+     * Creates Planes with (width, height) dimensions
      * and numPlanes planes. Initializes each plane with 0.
      */
-    Planes(size_t width, size_t height, size_t numPlanes=1);
+    Planes(size_t width, size_t height, size_t numPlanes = 1);
 
 public:
     /**
@@ -66,27 +66,19 @@ public:
      */
     size_t numPlanes() const noexcept;
 
-private:
     /**
-     * Plane width.
+     * @brief Swap contents of two planes in-place.
+     * @param a  index of first plane.
+     * @param b  index of second plane.
+     * @throws std::out_of_range if a or b >= numPlanes().
      */
-    size_t m_width;
-    /**
-     * Plane size=width*height.
-     */
-    size_t m_size;
-    /**
-     * Number of planes.
-     */
-    size_t m_numPlanes;
+    void swapPlanes(size_t a, size_t b);
 
-    /**
-     * Planes data packed into 1 dimension vector.
-     * So that plane0=m_data[0:m_size-1],
-     * plane1=m_data[m_size:2*m_size-1], etc.
-     */
+private:
+    size_t m_width;
+    size_t m_size;
+    size_t m_numPlanes;
     std::vector<uint8_t> m_data;
 };
 
 } // namespace ntcap
-

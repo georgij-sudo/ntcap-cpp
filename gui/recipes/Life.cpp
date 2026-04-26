@@ -15,6 +15,29 @@ QString Life::name() const
     return QStringLiteral("Life");
 }
 
+QString Life::description() const
+{
+    return QStringLiteral(
+        "<h2>Conway's Game of Life</h2>"
+        "<p>The classic totalistic cellular automaton on a Moore neighbourhood (8 cells).</p>"
+        "<h3>Rule — B3/S23</h3>"
+        "<ul>"
+        "<li><b>Birth:</b> a dead cell with exactly 3 alive neighbours becomes alive.</li>"
+        "<li><b>Survival:</b> an alive cell with 2 or 3 alive neighbours stays alive.</li>"
+        "<li><b>Death:</b> otherwise the cell dies (underpopulation or overpopulation).</li>"
+        "</ul>"
+        "<h3>Formal notation</h3>"
+        "<p>"
+        "Let <i>n</i> = number of alive Moore neighbours.<br>"
+        "cell′ = (cell = 1 ∧ n ∈ {2, 3}) ∨ (cell = 0 ∧ n = 3)"
+        "</p>"
+        "<h3>Planes</h3>"
+        "<p>Requires <b>1</b> plane.</p>"
+        "<h3>Topology</h3>"
+        "<p>Torus (wrapping edges).</p>"
+    );
+}
+
 void Life::step()
 {
     const size_t W = current().width();

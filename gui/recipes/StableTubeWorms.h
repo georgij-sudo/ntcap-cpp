@@ -14,6 +14,7 @@ public:
     explicit StableTubeWorms(Planes& current, QObject* parent = nullptr);
 
     QString name() const override;
+    QString description() const override;
 };
 
 } // namespace ntcap

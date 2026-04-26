@@ -10,12 +10,15 @@
 #include <QAction>
 #include <QTimer>
 #include <QActionGroup>
+#include <QInputDialog>
+#include <QMessageBox>
 
 #include "CellularCanvas.h"
 #include "AutomatonController.h"
 #include "menu_bar/SavePlanesAction.h"
 #include "menu_bar/LoadPlanesAction.h"
 #include "menu_bar/SimulationActions.h"
+#include "menu_bar/RecipeActions.h"
 #include "menu_bar/ColorMapPresetsAction.h"
 #include "menu_bar/ColorMapFromFileAction.h"
 #include "ColorMapPresetsAction.h"
@@ -49,7 +52,7 @@ MainWindow::MainWindow(size_t fieldWidth, size_t fieldHeight,
 
     buildInfoBar();
 
-    setWindowTitle("Parity CA (threaded)");
+    setWindowTitle("ntcap");
     resize(1280, 720);
 }
 
@@ -98,7 +101,10 @@ void MainWindow::applyLoadedPlanes(const Planes& planes)
 void MainWindow::buildMenuBar()
 {
     buildPlanesMenu();
-    m_recipesMenu = addPlaceholderMenu(tr("Recipes"));
+
+    m_recipeActions = new RecipeActions(
+        m_controller, m_canvas, this, this);
+    menuBar()->addMenu(m_recipeActions->menu());
 
     m_simulationActions = new SimulationActions(
         m_controller, m_canvas,
@@ -122,6 +128,44 @@ void MainWindow::buildPlanesMenu()
         [this]() -> Planes { return snapshotCopy(); },
         this, this);
     m_planesMenu->addAction(m_saveAction->action());
+
+    m_planesMenu->addSeparator();
+
+    m_swapPlanesAction = m_planesMenu->addAction(tr("Swap Planes\u2026"));
+    connect(m_swapPlanesAction, &QAction::triggered,
+            this, &MainWindow::onSwapPlanesTriggered);
+}
+
+void MainWindow::onSwapPlanesTriggered()
+{
+    const size_t np = m_controller->numPlanes();
+    if (np < 2) {
+        QMessageBox::information(this, tr("Swap Planes"),
+            tr("Need at least 2 planes to swap. Current: %1.").arg(np));
+        return;
+    }
+
+    bool okA = false;
+    int a = QInputDialog::getInt(
+        this, tr("Swap Planes"),
+        tr("First plane index (0..%1):").arg(np - 1),
+        0, 0, static_cast<int>(np - 1), 1, &okA);
+    if (!okA)
+        return;
+
+    bool okB = false;
+    int b = QInputDialog::getInt(
+        this, tr("Swap Planes"),
+        tr("Second plane index (0..%1):").arg(np - 1),
+        (a == 0) ? 1 : 0, 0, static_cast<int>(np - 1), 1, &okB);
+    if (!okB)
+        return;
+
+    if (a == b)
+        return;
+
+    m_controller->requestSwapPlanes(
+        static_cast<size_t>(a), static_cast<size_t>(b));
 }
 
 void MainWindow::buildViewMenu()
@@ -210,6 +254,10 @@ void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
 
 void MainWindow::onPlanesReset(const Planes& planes)
 {
+    m_fieldWidth  = planes.width();
+    m_fieldHeight = planes.height();
+    m_canvas->setFieldSize(planes.width(), planes.height());
+    m_canvas->setTripleBuffer(&m_controller->tripleBuffer(), 0);
     rebuildDisplayModeMenu(planes.numPlanes());
 }
 

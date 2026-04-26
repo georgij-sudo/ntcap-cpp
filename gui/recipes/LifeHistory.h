@@ -22,6 +22,7 @@ public:
 
     void step() override;
     QString name() const override;
+    QString description() const override;
 
     /**
      * Read-only view of the previous generation (plane 1).
