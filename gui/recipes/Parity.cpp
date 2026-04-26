@@ -15,6 +15,29 @@ QString Parity::name() const
     return QStringLiteral("Parity");
 }
 
+QString Parity::description() const
+{
+    return QStringLiteral(
+        "<h2>Parity</h2>"
+        "<p>A totalistic rule on the Von Neumann neighbourhood (4 cells + center).</p>"
+        "<h3>Rule</h3>"
+        "<p>"
+        "sum = center + north + east + south + west<br>"
+        "cell′ = sum mod 2"
+        "</p>"
+        "<p>The cell is alive if the sum of itself and its four cardinal "
+        "neighbours is odd, dead otherwise.</p>"
+        "<h3>Behaviour</h3>"
+        "<p>Produces self-similar fractal patterns (Sierpiński-like) from simple seeds. "
+        "Fully deterministic and reversible in character — "
+        "patterns expand symmetrically at light speed.</p>"
+        "<h3>Planes</h3>"
+        "<p>Requires <b>1</b> plane.</p>"
+        "<h3>Topology</h3>"
+        "<p>Torus (wrapping edges).</p>"
+    );
+}
+
 void Parity::step()
 {
     const size_t W = current().width();

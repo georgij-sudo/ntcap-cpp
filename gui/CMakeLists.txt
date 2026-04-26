@@ -18,17 +18,25 @@ add_executable(ntcap-gui
     menu_bar/SimulationActions.cpp
     menu_bar/ColorMapFromFileAction.cpp
     menu_bar/ColorMapPresetsAction.cpp
+    menu_bar/RecipeActions.cpp
+    menu_bar/RecipeChangeDialog.cpp
+    menu_bar/RecipeInfoDialog.cpp
     recipes/Life.cpp
     recipes/LifeHistory.cpp
     recipes/Parity.cpp
+    recipes/TubeWorms.cpp
+    recipes/StableTubeWorms.cpp
+    recipes/TimeTunnel.cpp
+    recipes/CyclicRank.cpp
+    recipes/RecipeRegistry.cpp
+    recipes/RecipeParameterWidget.cpp
+    recipes/CyclicRankParameterWidget.cpp
     color_map/ColorMapPresets.cpp
     color_map/ColorMapPresetsDialog.cpp
     SinglePlaneStrategy.cpp
     BitfieldStrategy.cpp
     SaturatingSumStrategy.cpp
     NormalizedSumStrategy.cpp
-    recipes/TubeWorms.cpp
-    recipes/StableTubeWorms.cpp
     AntiflickerPostProcessor.cpp
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp

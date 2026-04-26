@@ -28,6 +28,7 @@ public:
     ~TubeWorms() override;
 
     void step() override;
+    QString description() const override;
     QString name() const override;
 
 protected:

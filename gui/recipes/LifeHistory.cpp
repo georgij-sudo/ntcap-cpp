@@ -18,6 +18,33 @@ QString LifeHistory::name() const
     return QStringLiteral("LifeHistory");
 }
 
+QString LifeHistory::description() const
+{
+    return QStringLiteral(
+        "<h2>Life with History</h2>"
+        "<p>Conway's Game of Life (B3/S23) with an additional plane "
+        "that records the previous generation.</p>"
+        "<h3>Planes</h3>"
+        "<table border='1' cellpadding='4' cellspacing='0'>"
+        "<tr><th>Plane</th><th>Meaning</th></tr>"
+        "<tr><td>0</td><td>Current generation (0 = dead, 1 = alive)</td></tr>"
+        "<tr><td>1</td><td>Previous generation snapshot</td></tr>"
+        "</table>"
+        "<h3>Rule</h3>"
+        "<p>Plane 0 follows standard B3/S23.<br>"
+        "Before each step, plane 0 is copied into plane 1.</p>"
+        "<h3>Use cases</h3>"
+        "<ul>"
+        "<li>Visualise cell age / motion direction using Bitfield or colour maps.</li>"
+        "<li>Colour map <i>Alive w/ History (4)</i> maps the four combinations "
+        "(dead→dead, dead→alive, alive→dead, alive→alive).</li>"
+        "</ul>"
+        "<h3>Topology</h3>"
+        "<p>Torus (wrapping edges).</p>"
+        "<p>Requires <b>2</b> planes.</p>"
+    );
+}
+
 void LifeHistory::step()
 {
     const size_t W         = current().width();

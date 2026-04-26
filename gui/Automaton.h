@@ -21,6 +21,13 @@ public:
      */
     virtual QString name() const;
 
+    /**
+     * @brief HTML description of the automaton for the Info dialog.
+     *
+     * Default returns empty string.
+     */
+    virtual QString description() const;
+
     void commit();
     void setCurrent(Planes& current);
 

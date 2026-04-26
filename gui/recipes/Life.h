@@ -14,6 +14,7 @@ public:
 
     void step() override;
     QString name() const override;
+    QString description() const override;
 
 private:
     TorusTopology m_topo;

@@ -16,6 +16,11 @@ QString Automaton::name() const
     return QStringLiteral("Unknown");
 }
 
+QString Automaton::description() const
+{
+    return QString();
+}
+
 void Automaton::commit()
 {
     std::swap(*m_current, *m_tmp);

@@ -10,20 +10,26 @@ AutomatonController::AutomatonController(Planes planes,
     : QObject(parent)
     , m_current(std::move(planes))
     , m_automaton(std::move(automaton))
-    , m_triple([this]() {
-          return Planes(m_current.width(),
-                        m_current.height(),
-                        m_current.numPlanes());
-      })
 {
+    rebuildTripleBuffer();
     m_automaton->setCurrent(m_current);
-    cacheAutomatonName();
+    cacheAutomatonInfo();
     publishSnapshot();
 }
 
 AutomatonController::~AutomatonController()
 {
     stop();
+}
+
+void AutomatonController::rebuildTripleBuffer()
+{
+    m_triple = std::make_unique<TripleBuffer<Planes>>(
+        [this]() {
+            return Planes(m_current.width(),
+                          m_current.height(),
+                          m_current.numPlanes());
+        });
 }
 
 size_t AutomatonController::generation() const noexcept {
@@ -44,6 +50,11 @@ QString AutomatonController::automatonName() const noexcept
     return m_cachedAutomatonName;
 }
 
+QString AutomatonController::automatonDescription() const noexcept
+{
+    return m_cachedDescription;
+}
+
 size_t AutomatonController::fieldWidth() const noexcept
 {
     return m_current.width();
@@ -59,11 +70,15 @@ size_t AutomatonController::numPlanes() const noexcept
     return m_current.numPlanes();
 }
 
-void AutomatonController::cacheAutomatonName()
+void AutomatonController::cacheAutomatonInfo()
 {
-    m_cachedAutomatonName = m_automaton
-        ? m_automaton->name()
-        : QStringLiteral("None");
+    if (m_automaton) {
+        m_cachedAutomatonName = m_automaton->name();
+        m_cachedDescription   = m_automaton->description();
+    } else {
+        m_cachedAutomatonName = QStringLiteral("None");
+        m_cachedDescription.clear();
+    }
 }
 
 void AutomatonController::setRenderInterval(size_t n) {
@@ -81,7 +96,49 @@ void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
     Q_ASSERT(!m_running.load());
     m_automaton = std::move(automaton);
     m_automaton->setCurrent(m_current);
-    cacheAutomatonName();
+    cacheAutomatonInfo();
+}
+
+void AutomatonController::changeRecipe(AutomatonFactory factory,
+                                       size_t width,
+                                       size_t height,
+                                       size_t numPlanes)
+{
+    const bool wasRunning = m_running.load();
+    if (wasRunning)
+        stop();
+
+    const size_t newW = (width  > 0) ? width  : m_current.width();
+    const size_t newH = (height > 0) ? height : m_current.height();
+    const size_t newP = (numPlanes > 0) ? numPlanes : m_current.numPlanes();
+
+    const bool dimsChanged = (newW != m_current.width())
+                          || (newH != m_current.height());
+
+    if (dimsChanged) {
+        m_current = Planes(newW, newH, newP);
+        rebuildTripleBuffer();
+    } else if (newP != m_current.numPlanes()) {
+        Planes resized(newW, newH, newP);
+        const size_t planesToCopy = std::min(newP, m_current.numPlanes());
+        const size_t planeBytes   = m_current.size();
+        std::memcpy(resized.data(),
+                    m_current.data(),
+                    planesToCopy * planeBytes);
+        m_current = std::move(resized);
+        rebuildTripleBuffer();
+    }
+
+    m_automaton = factory(m_current);
+    m_generation.store(0, std::memory_order_relaxed);
+    cacheAutomatonInfo();
+    publishSnapshot();
+
+    emit planesReset(m_current);
+    emit recipeChanged();
+
+    if (wasRunning)
+        start();
 }
 
 void AutomatonController::resetPlanes(Planes planes)
@@ -89,10 +146,20 @@ void AutomatonController::resetPlanes(Planes planes)
     Q_ASSERT(!m_running.load());
     m_current = std::move(planes);
     m_generation = 0;
+
+    rebuildTripleBuffer();
+
     m_automaton->setCurrent(m_current);
-    cacheAutomatonName();
+    cacheAutomatonInfo();
     emit planesReset(m_current);
     publishSnapshot();
+}
+
+void AutomatonController::requestSwapPlanes(size_t a, size_t b)
+{
+    m_swapRequest.a = a;
+    m_swapRequest.b = b;
+    m_swapRequest.pending.store(true, std::memory_order_release);
 }
 
 void AutomatonController::start()
@@ -122,6 +189,14 @@ void AutomatonController::stop()
 void AutomatonController::stepOnce()
 {
     Q_ASSERT(!m_running.load());
+
+    if (m_swapRequest.pending.load(std::memory_order_acquire)) {
+        m_current.swapPlanes(m_swapRequest.a, m_swapRequest.b);
+        m_swapRequest.pending.store(false, std::memory_order_release);
+        publishSnapshot();
+        return;
+    }
+
     m_automaton->step();
     m_automaton->commit();
     m_generation.fetch_add(1, std::memory_order_relaxed);
@@ -131,6 +206,13 @@ void AutomatonController::stepOnce()
 void AutomatonController::run()
 {
     while (m_running.load(std::memory_order_relaxed)) {
+
+        if (m_swapRequest.pending.load(std::memory_order_acquire)) {
+            m_current.swapPlanes(m_swapRequest.a, m_swapRequest.b);
+            m_swapRequest.pending.store(false, std::memory_order_release);
+            publishSnapshot();
+        }
+
         const size_t delay = m_stepDelayMs.load(std::memory_order_relaxed);
         if (delay > 0) {
             constexpr size_t kChunkMs = 50;
@@ -174,10 +256,10 @@ void AutomatonController::publishSnapshot()
     const size_t totalBytes =
         m_current.size() * m_current.numPlanes();
 
-    std::memcpy(m_triple.writeBuffer().data(),
+    std::memcpy(m_triple->writeBuffer().data(),
                 m_current.data(),
                 totalBytes);
-    m_triple.publish();
+    m_triple->publish();
 }
 
 } // namespace ntcap
