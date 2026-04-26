@@ -32,6 +32,7 @@ add_executable(ntcap-gui
     AntiflickerPostProcessor.cpp
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp
+    StatusBarManager.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)

@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QThread>
+#include <QString>
 #include <atomic>
 #include <memory>
 #include "Planes.h"
@@ -24,6 +25,26 @@ public:
     size_t stepDelayMs()    const noexcept;
     bool   isRunning()      const noexcept;
 
+    /**
+     * @brief Name of the current automaton recipe (GUI-thread safe).
+     */
+    QString automatonName() const noexcept;
+
+    /**
+     * @brief Field width of the current planes.
+     */
+    size_t fieldWidth() const noexcept;
+
+    /**
+     * @brief Field height of the current planes.
+     */
+    size_t fieldHeight() const noexcept;
+
+    /**
+     * @brief Number of planes in the current configuration.
+     */
+    size_t numPlanes() const noexcept;
+
     void setAutomaton(std::unique_ptr<Automaton> automaton);
 
 public slots:
@@ -36,15 +57,13 @@ public slots:
     void resetPlanes(Planes planes);
 
 signals:
-    /**
-     * @brief Сигнал, отправляемый при сбросе/замене набора плоскостей.
-     */
     void planesReset(const Planes& planes);
 
 private:
     void run();
     bool shouldRender(size_t gen) noexcept;
     void publishSnapshot();
+    void cacheAutomatonName();
 
     Planes                     m_current;
     std::unique_ptr<Automaton> m_automaton;
@@ -56,6 +75,8 @@ private:
     std::atomic<size_t>        m_renderInterval{1};
     std::atomic<size_t>        m_skipRemaining{0};
     std::atomic<size_t>        m_stepDelayMs{0};
+
+    QString m_cachedAutomatonName;
 };
 
 } // namespace ntcap

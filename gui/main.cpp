@@ -9,6 +9,7 @@
 #include "Planes.h"
 #include "TorusTopology.h"
 #include "StableTubeWorms.h"
+#include "LifeHistory.h"
 
 using namespace ntcap;
 
@@ -19,14 +20,14 @@ int main(int argc, char* argv[])
     constexpr size_t W = 400;
     constexpr size_t H = 400;
 
-    Planes initialPlanes(W, H, 3);
+    Planes initialPlanes(W, H, 2);
 
     const size_t planeSize = W * H;
-    for (size_t i = 0; i < planeSize*3; ++i) {
+    for (size_t i = 0; i < planeSize; ++i) {
         initialPlanes.data()[i] = static_cast<uint8_t>(std::rand() % 2);
     }
 
-    auto worms = std::make_unique<StableTubeWorms>(initialPlanes);
+    auto worms = std::make_unique<LifeHistory>(initialPlanes);
     AutomatonController controller(std::move(initialPlanes), std::move(worms));
 
     controller.setStepDelay(32);

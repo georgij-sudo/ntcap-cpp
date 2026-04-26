@@ -28,18 +28,23 @@ TubeWorms::TubeWorms(Planes& current,
 
 TubeWorms::~TubeWorms() = default;
 
+QString TubeWorms::name() const
+{
+    return QStringLiteral("TubeWorms");
+}
+
 void TubeWorms::step()
 {
     const size_t W = current().width();
     const size_t H = current().height();
     const size_t planeSize = current().size();
 
-    const uint8_t* cur = current().data();        // raw packed planes
+    const uint8_t* cur = current().data();
     uint8_t* next = tmp().data();
 
-    const uint8_t* cur0 = cur;                    // plane 0 start
-    const uint8_t* cur1 = cur + planeSize;        // plane 1 start
-    const uint8_t* cur2 = cur + 2 * planeSize;    // plane 2 start
+    const uint8_t* cur0 = cur;
+    const uint8_t* cur1 = cur + planeSize;
+    const uint8_t* cur2 = cur + 2 * planeSize;
 
     uint8_t* next0 = next;
     uint8_t* next1 = next + planeSize;

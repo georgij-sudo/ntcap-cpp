@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 #include <memory>
 #include "Planes.h"
 
@@ -14,6 +15,11 @@ public:
     ~Automaton() override;
 
     virtual void step() = 0;
+
+    /**
+     * @brief Human-readable name of the automaton recipe.
+     */
+    virtual QString name() const;
 
     void commit();
     void setCurrent(Planes& current);

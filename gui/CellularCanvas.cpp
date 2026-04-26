@@ -82,6 +82,22 @@ void CellularCanvas::setDefaultColor(QRgb color) noexcept
 
 qreal   CellularCanvas::zoom()   const noexcept { return m_zoom;   }
 QPointF CellularCanvas::offset() const noexcept  { return m_offset; }
+
+size_t CellularCanvas::fieldWidth() const noexcept
+{
+    return m_fieldWidth;
+}
+
+size_t CellularCanvas::fieldHeight() const noexcept
+{
+    return m_fieldHeight;
+}
+
+uint64_t CellularCanvas::paintCount() const noexcept
+{
+    return m_paintCount;
+}
+
 void CellularCanvas::setPanStep(qreal v) noexcept    { m_panStep = v;   }
 void CellularCanvas::setZoomFactor(qreal v) noexcept  { m_zoomFactor = v; }
 
@@ -176,8 +192,10 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
     QPainter painter(this);
     painter.fillRect(rect(), QColor(40, 40, 40));
 
-    if (m_fieldWidth == 0 || m_fieldHeight == 0)
+    if (m_fieldWidth == 0 || m_fieldHeight == 0) {
+        ++m_paintCount;
         return;
+    }
 
     const QPointF topLeftField     = widgetToField({0.0, 0.0});
     const QPointF bottomRightField = widgetToField({
@@ -192,8 +210,10 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
     const qreal srcBottom = std::min(bottomRightField.y(),
                                      static_cast<qreal>(m_fieldHeight));
 
-    if (srcLeft >= srcRight || srcTop >= srcBottom)
+    if (srcLeft >= srcRight || srcTop >= srcBottom) {
+        ++m_paintCount;
         return;
+    }
 
     const QRectF sourceRect(srcLeft, srcTop,
                             srcRight - srcLeft,
@@ -209,6 +229,8 @@ void CellularCanvas::paintEvent(QPaintEvent* /*event*/)
 
     const QImage& toDraw = m_processedImage.isNull() ? m_image : m_processedImage;
     painter.drawImage(targetRect, toDraw, sourceRect);
+
+    ++m_paintCount;
 }
 
 void CellularCanvas::fitToWindow()
@@ -289,9 +311,6 @@ void CellularCanvas::cycleDisplayModePrev() noexcept
     emit displayStrategyChanged(m_strategyIndex);
     update();
 }
-
-// ─── Новые методы: добавить в CellularCanvas.cpp ────────
-// (Полные реализации всех post-processing методов)
 
 void CellularCanvas::applyPostProcessing()
 {

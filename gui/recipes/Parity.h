@@ -13,6 +13,7 @@ public:
     ~Parity() override;
 
     void step() override;
+    QString name() const override;
 
 private:
     TorusTopology m_topo;

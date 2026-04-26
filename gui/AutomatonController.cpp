@@ -10,8 +10,6 @@ AutomatonController::AutomatonController(Planes planes,
     : QObject(parent)
     , m_current(std::move(planes))
     , m_automaton(std::move(automaton))
-    // Фабрика: создаём 3 пустых Planes с теми же размерами,
-    // НЕ полагаясь на copy-ctor Planes
     , m_triple([this]() {
           return Planes(m_current.width(),
                         m_current.height(),
@@ -19,6 +17,7 @@ AutomatonController::AutomatonController(Planes planes,
       })
 {
     m_automaton->setCurrent(m_current);
+    cacheAutomatonName();
     publishSnapshot();
 }
 
@@ -40,6 +39,33 @@ bool AutomatonController::isRunning() const noexcept {
     return m_running.load();
 }
 
+QString AutomatonController::automatonName() const noexcept
+{
+    return m_cachedAutomatonName;
+}
+
+size_t AutomatonController::fieldWidth() const noexcept
+{
+    return m_current.width();
+}
+
+size_t AutomatonController::fieldHeight() const noexcept
+{
+    return m_current.height();
+}
+
+size_t AutomatonController::numPlanes() const noexcept
+{
+    return m_current.numPlanes();
+}
+
+void AutomatonController::cacheAutomatonName()
+{
+    m_cachedAutomatonName = m_automaton
+        ? m_automaton->name()
+        : QStringLiteral("None");
+}
+
 void AutomatonController::setRenderInterval(size_t n) {
     m_renderInterval.store(n < 1 ? 1 : n, std::memory_order_relaxed);
 }
@@ -55,6 +81,7 @@ void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
     Q_ASSERT(!m_running.load());
     m_automaton = std::move(automaton);
     m_automaton->setCurrent(m_current);
+    cacheAutomatonName();
 }
 
 void AutomatonController::resetPlanes(Planes planes)
@@ -63,6 +90,7 @@ void AutomatonController::resetPlanes(Planes planes)
     m_current = std::move(planes);
     m_generation = 0;
     m_automaton->setCurrent(m_current);
+    cacheAutomatonName();
     emit planesReset(m_current);
     publishSnapshot();
 }
@@ -103,7 +131,6 @@ void AutomatonController::stepOnce()
 void AutomatonController::run()
 {
     while (m_running.load(std::memory_order_relaxed)) {
-        // ── Задержка ──
         const size_t delay = m_stepDelayMs.load(std::memory_order_relaxed);
         if (delay > 0) {
             constexpr size_t kChunkMs = 50;
@@ -118,7 +145,6 @@ void AutomatonController::run()
                 break;
         }
 
-        // ── Шаг ──
         m_automaton->step();
         m_automaton->commit();
         const size_t gen =

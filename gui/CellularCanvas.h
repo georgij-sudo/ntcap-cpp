@@ -36,67 +36,45 @@ public:
     qreal   zoom()   const noexcept;
     QPointF offset() const noexcept;
 
+    /**
+     * @brief Field width in cells.
+     */
+    size_t fieldWidth() const noexcept;
+
+    /**
+     * @brief Field height in cells.
+     */
+    size_t fieldHeight() const noexcept;
+
+    /**
+     * @brief Number of completed paint events (for render FPS).
+     */
+    uint64_t paintCount() const noexcept;
+
     void setPanStep(qreal pixels) noexcept;
     void setZoomFactor(qreal factor) noexcept;
 
     QSize sizeHint()        const override;
     QSize minimumSizeHint() const override;
 
-    /**
-     * @brief Установить список доступных стратегий отображения.
-     */
     void setDisplayStrategies(std::vector<DisplayStrategyPtr> strategies) noexcept;
-
-    /**
-     * @brief Установить выбранную стратегию по индексу.
-     */
     void setDisplayStrategyIndex(size_t idx) noexcept;
-
-    /**
-     * @brief Вернуть индекс выбранной стратегии.
-     */
     size_t displayStrategyIndex() const noexcept;
-
-    /**
-     * @brief Вернуть список доступных стратегий.
-     */
     const std::vector<DisplayStrategyPtr>& availableDisplayStrategies() const noexcept;
 
     // ── Post-processing API ─────────────────────────────
 
-    /**
-     * @brief Включить/выключить эффект Trail (затухающий след).
-     */
     void setTrailEnabled(bool enabled) noexcept;
     bool isTrailEnabled() const noexcept;
-
-    /**
-     * @brief Установить коэффициент затухания Trail.
-     * @throws std::invalid_argument если decay вне (0, 1).
-     */
     void setTrailDecay(double decay);
 
-    /**
-     * @brief Включить/выключить Antiflicker (EMA-сглаживание).
-     */
     void setAntiflickerEnabled(bool enabled) noexcept;
     bool isAntiflickerEnabled() const noexcept;
-
-    /**
-     * @brief Установить коэффициент EMA для Antiflicker.
-     * @throws std::invalid_argument если alpha вне (0, 1].
-     */
     void setAntiflickerAlpha(double alpha);
 
-    /**
-     * @brief Включить/выключить Grayscale фильтр.
-     */
     void setGrayscaleEnabled(bool enabled) noexcept;
     bool isGrayscaleEnabled() const noexcept;
 
-    /**
-     * @brief Сбросить состояние всех stateful пост-процессоров.
-     */
     void resetPostProcessors() noexcept;
 
 public slots:
@@ -149,7 +127,6 @@ private:
     std::vector<DisplayStrategyPtr> m_strategies;
     size_t                          m_strategyIndex = 0;
 
-    // ── post-processing ─────────────────────────────────
     TrailPostProcessor       m_trailProcessor;
     AntiflickerPostProcessor m_antiflickerProcessor;
     GrayscalePostProcessor   m_grayscaleProcessor;
@@ -157,6 +134,8 @@ private:
     bool m_trailEnabled       = false;
     bool m_antiflickerEnabled = false;
     bool m_grayscaleEnabled   = false;
+
+    uint64_t m_paintCount = 0;
 };
 
 } // namespace ntcap

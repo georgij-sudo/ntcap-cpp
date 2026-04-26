@@ -1,4 +1,3 @@
-// gui/MainWindow.h
 #pragma once
 
 #include <QMainWindow>
@@ -8,6 +7,8 @@
 #include <memory>
 
 #include "Planes.h"
+
+class QToolBar;
 
 namespace ntcap {
 
@@ -19,6 +20,7 @@ class SimulationActions;
 class ColorMapPresetsAction;
 class ColorMapFromFileAction;
 class DisplayStrategy;
+class StatusBarManager;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -41,25 +43,22 @@ private slots:
     void updateDisplayModeActions(size_t activeIndex);
 
 private:
-    // ── menu construction ───────────────────────────────
     void   buildMenuBar();
     void   buildPlanesMenu();
     void   buildViewMenu();
     void   buildPostProcessingMenu();
+    void   buildInfoBar();
     QMenu* addPlaceholderMenu(const QString& title);
     void   rebuildDisplayModeMenu(size_t numPlanes);
 
-    // ── planes helpers ──────────────────────────────────
     Planes snapshotCopy() const;
 
-    // ── data ────────────────────────────────────────────
     CellularCanvas*      m_canvas     = nullptr;
     AutomatonController* m_controller = nullptr;
 
     size_t m_fieldWidth  = 0;
     size_t m_fieldHeight = 0;
 
-    // menus / actions
     QMenu*             m_planesMenu        = nullptr;
     QMenu*             m_recipesMenu       = nullptr;
     SavePlanesAction*  m_saveAction        = nullptr;
@@ -72,11 +71,13 @@ private:
     ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
     std::vector<QAction*>    m_displayActions;
 
-    // ── post-processing menu ────────────────────────────
     QMenu*   m_postProcessingMenu   = nullptr;
     QAction* m_trailAction          = nullptr;
     QAction* m_antiflickerAction    = nullptr;
     QAction* m_grayscaleAction      = nullptr;
+
+    QToolBar*         m_infoBar           = nullptr;
+    StatusBarManager* m_statusBarManager  = nullptr;
 
     bool m_firstShow = true;
 };

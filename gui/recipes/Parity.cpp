@@ -10,6 +10,11 @@ Parity::Parity(Planes& current, QObject* parent)
 
 Parity::~Parity() = default;
 
+QString Parity::name() const
+{
+    return QStringLiteral("Parity");
+}
+
 void Parity::step()
 {
     const size_t W = current().width();
@@ -34,11 +39,11 @@ void Parity::step()
             const size_t colE = m_topo.wrapX(px + 1);
 
             const unsigned sum =
-                cur[rowC + x   ] +   // center
-                cur[rowN + x   ] +   // N
-                cur[rowC + colE] +   // E
-                cur[rowS + x   ] +   // S
-                cur[rowC + colW];     // W
+                cur[rowC + x   ] +
+                cur[rowN + x   ] +
+                cur[rowC + colE] +
+                cur[rowS + x   ] +
+                cur[rowC + colW];
 
             next[rowC + x] = static_cast<uint8_t>(sum & 1u);
         }
