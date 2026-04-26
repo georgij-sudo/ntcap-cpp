@@ -9,9 +9,8 @@ TubeWorms::TubeWorms(Planes& current, QObject* parent)
     , m_topo(current.width(), current.height())
     , m_alarm{}
 {
-    if (current.numPlanes() < 3) {
+    if (current.numPlanes() < 3)
         throw std::invalid_argument{"TubeWorms requires Planes with at least 3 planes"};
-    }
 }
 
 TubeWorms::TubeWorms(Planes& current,
@@ -21,12 +20,16 @@ TubeWorms::TubeWorms(Planes& current,
     , m_topo(current.width(), current.height())
     , m_alarm(alarmArray)
 {
-    if (current.numPlanes() < 3) {
+    if (current.numPlanes() < 3)
         throw std::invalid_argument{"TubeWorms requires Planes with at least 3 planes"};
-    }
 }
 
 TubeWorms::~TubeWorms() = default;
+
+void TubeWorms::setCurrent(Planes& current){
+    Automaton::setCurrent(current);
+    m_topo = TorusTopology(current.width(), current.height());
+}
 
 QString TubeWorms::name() const
 {

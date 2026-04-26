@@ -4,9 +4,12 @@
 #include "RandomInitDialog.h"
 #include "SquareInitDialog.h"
 #include "CircleInitDialog.h"
+#include "RecipePresetDialog.h"
+#include "RecipePresetRegistry.h"
 
-#include <QAction>
 #include <QMenu>
+#include <QAction>
+#include <QMessageBox>
 
 namespace ntcap {
 
@@ -19,24 +22,22 @@ InitializeActions::InitializeActions(AutomatonController* controller,
     , m_provider(std::move(provider))
     , m_dialogParent(dialogParent)
 {
-    m_menu = new QMenu(tr("Initialize"), m_dialogParent);
+    m_menu = new QMenu(tr("Initialize..."), m_dialogParent);
 
     m_recipeAction = m_menu->addAction(tr("This Recipe..."));
-    m_recipeAction->setEnabled(false);
-    m_recipeAction->setToolTip(tr("Not implemented yet"));
-
     m_menu->addSeparator();
-
-    m_randomAction = m_menu->addAction(tr("Random Fill..."));
+    m_randomAction = m_menu->addAction(tr("Random..."));
     m_squareAction = m_menu->addAction(tr("Square..."));
     m_circleAction = m_menu->addAction(tr("Circle..."));
 
+    connect(m_recipeAction, &QAction::triggered,
+            this,           &InitializeActions::onRecipeTriggered);
     connect(m_randomAction, &QAction::triggered,
-            this, &InitializeActions::onRandomTriggered);
+            this,           &InitializeActions::onRandomTriggered);
     connect(m_squareAction, &QAction::triggered,
-            this, &InitializeActions::onSquareTriggered);
+            this,           &InitializeActions::onSquareTriggered);
     connect(m_circleAction, &QAction::triggered,
-            this, &InitializeActions::onCircleTriggered);
+            this,           &InitializeActions::onCircleTriggered);
 }
 
 QMenu* InitializeActions::menu() const noexcept
@@ -44,15 +45,44 @@ QMenu* InitializeActions::menu() const noexcept
     return m_menu;
 }
 
-void InitializeActions::onRandomTriggered()
+void InitializeActions::onRecipeTriggered()
 {
-    const size_t np = m_controller->numPlanes();
+    QString recipeName = m_controller->automatonName();
+    QList<RecipePreset> presets = RecipePresetRegistry::presetsFor(recipeName);
 
-    RandomInitDialog dlg(np, m_dialogParent);
+    if (presets.isEmpty()) {
+        QMessageBox::information(
+            m_dialogParent,
+            tr("This Recipe"),
+            tr("No presets available for \"%1\".").arg(recipeName));
+        return;
+    }
+
+    RecipePresetDialog dlg(recipeName, presets, m_dialogParent);
     if (dlg.exec() != QDialog::Accepted)
         return;
 
+    int idx = dlg.selectedIndex();
+    if (idx < 0 || idx >= presets.size())
+        return;
+
+    bool wasRunning = m_controller->isRunning();
+    if (wasRunning)
+        m_controller->stop();
+
+    m_controller->resetPlanes(std::move(presets[idx].planes));
+
+    if (wasRunning)
+        m_controller->start();
+}
+
+void InitializeActions::onRandomTriggered()
+{
     Planes snapshot = m_provider();
+
+    RandomInitDialog dlg(snapshot.numPlanes(), m_dialogParent);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
 
     if (dlg.allPlanes()) {
         PlaneInitializer::randomFillAll(snapshot, dlg.density(), dlg.fillValue());
@@ -61,45 +91,60 @@ void InitializeActions::onRandomTriggered()
                                      dlg.density(), dlg.fillValue());
     }
 
+    bool wasRunning = m_controller->isRunning();
+    if (wasRunning)
+        m_controller->stop();
+
     m_controller->resetPlanes(std::move(snapshot));
+
+    if (wasRunning)
+        m_controller->start();
 }
 
 void InitializeActions::onSquareTriggered()
 {
-    const size_t fw = m_controller->fieldWidth();
-    const size_t fh = m_controller->fieldHeight();
-    const size_t np = m_controller->numPlanes();
+    Planes snapshot = m_provider();
 
-    SquareInitDialog dlg(fw, fh, np, m_dialogParent);
+    SquareInitDialog dlg(snapshot.width(), snapshot.height(),
+                         snapshot.numPlanes(), m_dialogParent);
     if (dlg.exec() != QDialog::Accepted)
         return;
-
-    Planes snapshot = m_provider();
 
     PlaneInitializer::fillSquare(snapshot, dlg.planeIndex(),
                                  dlg.squareWidth(), dlg.squareHeight(),
                                  dlg.fillValue());
 
+    bool wasRunning = m_controller->isRunning();
+    if (wasRunning)
+        m_controller->stop();
+
     m_controller->resetPlanes(std::move(snapshot));
+
+    if (wasRunning)
+        m_controller->start();
 }
 
 void InitializeActions::onCircleTriggered()
 {
-    const size_t fw = m_controller->fieldWidth();
-    const size_t fh = m_controller->fieldHeight();
-    const size_t np = m_controller->numPlanes();
+    Planes snapshot = m_provider();
 
-    CircleInitDialog dlg(fw, fh, np, m_dialogParent);
+    CircleInitDialog dlg(snapshot.width(), snapshot.height(),
+                         snapshot.numPlanes(), m_dialogParent);
     if (dlg.exec() != QDialog::Accepted)
         return;
-
-    Planes snapshot = m_provider();
 
     PlaneInitializer::fillCircle(snapshot, dlg.planeIndex(),
                                  dlg.diameterX(), dlg.diameterY(),
                                  dlg.fillValue());
 
+    bool wasRunning = m_controller->isRunning();
+    if (wasRunning)
+        m_controller->stop();
+
     m_controller->resetPlanes(std::move(snapshot));
+
+    if (wasRunning)
+        m_controller->start();
 }
 
 } // namespace ntcap

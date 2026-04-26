@@ -104,38 +104,25 @@ void AutomatonController::changeRecipe(AutomatonFactory factory,
                                        size_t height,
                                        size_t numPlanes)
 {
-    const bool wasRunning = m_running.load();
+    bool wasRunning = m_running.load(std::memory_order_acquire);
     if (wasRunning)
         stop();
 
-    const size_t newW = (width  > 0) ? width  : m_current.width();
-    const size_t newH = (height > 0) ? height : m_current.height();
-    const size_t newP = (numPlanes > 0) ? numPlanes : m_current.numPlanes();
+    size_t w = (width    != 0) ? width    : m_current.width();
+    size_t h = (height   != 0) ? height   : m_current.height();
+    size_t n = (numPlanes != 0) ? numPlanes : m_current.numPlanes();
 
-    const bool dimsChanged = (newW != m_current.width())
-                          || (newH != m_current.height());
-
-    if (dimsChanged) {
-        m_current = Planes(newW, newH, newP);
-        rebuildTripleBuffer();
-    } else if (newP != m_current.numPlanes()) {
-        Planes resized(newW, newH, newP);
-        const size_t planesToCopy = std::min(newP, m_current.numPlanes());
-        const size_t planeBytes   = m_current.size();
-        std::memcpy(resized.data(),
-                    m_current.data(),
-                    planesToCopy * planeBytes);
-        m_current = std::move(resized);
-        rebuildTripleBuffer();
-    }
+    m_current = Planes(w, h, n);
 
     m_automaton = factory(m_current);
-    m_generation.store(0, std::memory_order_relaxed);
+    m_generation.store(0, std::memory_order_release);
+
     cacheAutomatonInfo();
+    rebuildTripleBuffer();
     publishSnapshot();
 
-    emit planesReset(m_current);
     emit recipeChanged();
+    emit planesReset(m_current);
 
     if (wasRunning)
         start();

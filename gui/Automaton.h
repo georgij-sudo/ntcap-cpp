@@ -23,13 +23,18 @@ public:
 
     /**
      * @brief HTML description of the automaton for the Info dialog.
-     *
-     * Default returns empty string.
      */
     virtual QString description() const;
 
     void commit();
-    void setCurrent(Planes& current);
+
+    /**
+     * @brief Rebind the automaton to a (possibly resized) Planes.
+     *
+     * Subclasses that cache geometry (e.g. TorusTopology) must override
+     * this to rebuild their caches.  Always call the base implementation.
+     */
+    virtual void setCurrent(Planes& current);
 
 protected:
     Planes&       current() noexcept;

@@ -13,6 +13,7 @@ public:
     ~Parity() override;
 
     void step() override;
+    void setCurrent(Planes& current) override;
     QString description() const override;
     QString name() const override;
 

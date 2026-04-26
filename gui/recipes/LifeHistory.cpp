@@ -1,5 +1,4 @@
 #include "LifeHistory.h"
-
 #include <cstring>
 
 namespace ntcap {
@@ -12,6 +11,12 @@ LifeHistory::LifeHistory(Planes& current, QObject* parent)
 }
 
 LifeHistory::~LifeHistory() = default;
+
+void LifeHistory::setCurrent(Planes& current)
+{
+    Automaton::setCurrent(current);
+    m_topo = TorusTopology(current.width(), current.height());
+}
 
 QString LifeHistory::name() const
 {
@@ -33,12 +38,6 @@ QString LifeHistory::description() const
         "<h3>Rule</h3>"
         "<p>Plane 0 follows standard B3/S23.<br>"
         "Before each step, plane 0 is copied into plane 1.</p>"
-        "<h3>Use cases</h3>"
-        "<ul>"
-        "<li>Visualise cell age / motion direction using Bitfield or colour maps.</li>"
-        "<li>Colour map <i>Alive w/ History (4)</i> maps the four combinations "
-        "(dead→dead, dead→alive, alive→dead, alive→alive).</li>"
-        "</ul>"
         "<h3>Topology</h3>"
         "<p>Torus (wrapping edges).</p>"
         "<p>Requires <b>2</b> planes.</p>"
@@ -50,7 +49,6 @@ void LifeHistory::step()
     const size_t W         = current().width();
     const size_t H         = current().height();
     const size_t planeSize = current().size();
-
     const uint8_t* cur  = current().data();
     uint8_t*       next = tmp().data();
     uint8_t*       prev = tmp().data() + planeSize;
@@ -58,17 +56,13 @@ void LifeHistory::step()
     std::memcpy(prev, cur, planeSize);
 
     for (size_t y = 0; y < H; ++y) {
-
         const auto py = static_cast<ptrdiff_t>(y);
-
         const size_t rowN = m_topo.wrapY(py - 1) * W;
         const size_t rowC = y * W;
         const size_t rowS = m_topo.wrapY(py + 1) * W;
 
         for (size_t x = 0; x < W; ++x) {
-
             const auto px = static_cast<ptrdiff_t>(x);
-
             const size_t colW = m_topo.wrapX(px - 1);
             const size_t colE = m_topo.wrapX(px + 1);
 
@@ -83,7 +77,6 @@ void LifeHistory::step()
                 (cur[rowS + colE] != 0);
 
             const size_t idx = rowC + x;
-
             if (cur[idx] != 0)
                 next[idx] = (alive == 2 || alive == 3) ? 1 : 0;
             else
