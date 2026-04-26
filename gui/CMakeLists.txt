@@ -49,6 +49,7 @@ add_executable(ntcap-gui
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp
     StatusBarManager.cpp
+    converters/PlaintextPlanesConverter.cpp
 )
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)

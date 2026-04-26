@@ -3,6 +3,7 @@
 #include "PlanesConverter.h"
 #include "RlePlanesConverter.h"
 #include "CsvPlanesConverter.h"
+#include "PlaintextPlanesConverter.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -30,28 +31,30 @@ QAction* LoadPlanesAction::action() const noexcept
 
 void LoadPlanesAction::onTriggered()
 {
-    const QString rleFilter = tr("RLE files (*.rle)");
-    const QString csvFilter = tr("CSV files (*.csv)");
-    const QString allFilter = tr("All supported (*.rle *.csv)");
+    const QString rleFilter   = tr("RLE files (*.rle)");
+    const QString csvFilter   = tr("CSV files (*.csv)");
+    const QString cellsFilter = tr("Plaintext cells (*.cells)");
+    const QString allFilter   = tr("All supported (*.rle *.csv *.cells)");
 
     QString selectedFilter;
     const QString path = QFileDialog::getOpenFileName(
         m_dialogParent,
         tr("Open Planes"),
         QString(),
-        allFilter + ";;" + rleFilter + ";;" + csvFilter,
+        allFilter + ";;" + rleFilter + ";;" + csvFilter + ";;" + cellsFilter,
         &selectedFilter);
 
     if (path.isEmpty())
         return;
 
-    // --- выбор конвертера по расширению ---
     std::unique_ptr<PlanesConverter> converter;
 
     if (path.endsWith(".csv", Qt::CaseInsensitive)) {
         converter = std::make_unique<CsvPlanesConverter>();
     } else if (path.endsWith(".rle", Qt::CaseInsensitive)) {
         converter = std::make_unique<RlePlanesConverter>();
+    } else if (path.endsWith(".cells", Qt::CaseInsensitive)) {
+        converter = std::make_unique<PlaintextPlanesConverter>();
     } else {
         QMessageBox::warning(
             m_dialogParent, tr("Unknown Format"),
@@ -59,7 +62,6 @@ void LoadPlanesAction::onTriggered()
         return;
     }
 
-    // --- десериализация ---
     try {
         std::ifstream in(path.toStdString(),
                          std::ios::in | std::ios::binary);

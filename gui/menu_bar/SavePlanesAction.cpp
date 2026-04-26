@@ -3,6 +3,7 @@
 #include "PlanesConverter.h"
 #include "RlePlanesConverter.h"
 #include "CsvPlanesConverter.h"
+#include "PlaintextPlanesConverter.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -32,28 +33,34 @@ QAction* SavePlanesAction::action() const noexcept
 
 void SavePlanesAction::onTriggered()
 {
-    const QString rleFilter = tr("RLE files (*.rle)");
-    const QString csvFilter = tr("CSV files (*.csv)");
+    const QString rleFilter   = tr("RLE files (*.rle)");
+    const QString csvFilter   = tr("CSV files (*.csv)");
+    const QString cellsFilter = tr("Plaintext cells (*.cells)");
 
     QString selectedFilter;
     const QString path = QFileDialog::getSaveFileName(
         m_dialogParent,
         tr("Save Planes As"),
         QString(),
-        rleFilter + ";;" + csvFilter,
+        rleFilter + ";;" + csvFilter + ";;" + cellsFilter,
         &selectedFilter);
 
     if (path.isEmpty())
         return;
 
-    // --- выбор конвертера ---
     std::unique_ptr<PlanesConverter> converter;
     QString finalPath = path;
 
     const bool wantCsv = path.endsWith(".csv", Qt::CaseInsensitive)
                       || selectedFilter == csvFilter;
+    const bool wantCells = path.endsWith(".cells", Qt::CaseInsensitive)
+                        || selectedFilter == cellsFilter;
 
-    if (wantCsv) {
+    if (wantCells) {
+        if (!finalPath.endsWith(".cells", Qt::CaseInsensitive))
+            finalPath += ".cells";
+        converter = std::make_unique<PlaintextPlanesConverter>();
+    } else if (wantCsv) {
         if (!finalPath.endsWith(".csv", Qt::CaseInsensitive))
             finalPath += ".csv";
         converter = std::make_unique<CsvPlanesConverter>();
@@ -63,7 +70,6 @@ void SavePlanesAction::onTriggered()
         converter = std::make_unique<RlePlanesConverter>();
     }
 
-    // --- сериализация ---
     try {
         const Planes planes = m_provider();
 
