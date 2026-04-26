@@ -9,6 +9,9 @@
 #include "StableTubeWorms.h"
 #include "TimeTunnel.h"
 #include "CyclicRank.h"
+#include "BrianBrain.h"
+#include "Histogram.h"
+#include "Scarves.h"
 
 namespace ntcap {
 
@@ -21,10 +24,6 @@ QList<RecipeDescriptor> RecipeRegistry::builtIn()
         QStringLiteral(
             "<h2>Conway's Game of Life</h2>"
             "<p>Classic totalistic rule B3/S23 on Moore neighbourhood.</p>"
-            "<h3>Rule</h3>"
-            "<p>Birth: exactly 3 alive neighbours.<br>"
-            "Survival: 2 or 3 alive neighbours.<br>"
-            "Otherwise: death.</p>"
             "<p>Requires <b>1</b> plane.</p>"),
         1,
         nullptr,
@@ -47,15 +46,57 @@ QList<RecipeDescriptor> RecipeRegistry::builtIn()
     });
 
     list.append(RecipeDescriptor{
+        QStringLiteral("BrianBrain"),
+        QStringLiteral(
+            "<h2>Brian's Brain</h2>"
+            "<p>Three-state automaton (ready/firing/dying) on Moore neighbourhood. "
+            "Encoded across 2 planes.</p>"
+            "<p>Requires <b>2</b> planes.</p>"),
+        2,
+        nullptr,
+        [](Planes& p) -> std::unique_ptr<Automaton> {
+            return std::make_unique<BrianBrain>(p);
+        }
+    });
+
+    list.append(RecipeDescriptor{
         QStringLiteral("Parity"),
         QStringLiteral(
             "<h2>Parity</h2>"
-            "<p>Cell flips when the number of alive Moore neighbours is odd.</p>"
+            "<p>Cell is alive if sum of itself and Von Neumann neighbours is odd.</p>"
             "<p>Requires <b>1</b> plane.</p>"),
         1,
         nullptr,
         [](Planes& p) -> std::unique_ptr<Automaton> {
             return std::make_unique<Parity>(p);
+        }
+    });
+
+    list.append(RecipeDescriptor{
+        QStringLiteral("Histogram"),
+        QStringLiteral(
+            "<h2>Histogram</h2>"
+            "<p>Gravity-like falling particles with static wall barriers. "
+            "Von Neumann neighbourhood.</p>"
+            "<p>Requires <b>2</b> planes.</p>"),
+        2,
+        nullptr,
+        [](Planes& p) -> std::unique_ptr<Automaton> {
+            return std::make_unique<Histogram>(p);
+        }
+    });
+
+    list.append(RecipeDescriptor{
+        QStringLiteral("Scarves"),
+        QStringLiteral(
+            "<h2>Scarves</h2>"
+            "<p>XOR-based weaving pattern. First row evolves, "
+            "others shift downward.</p>"
+            "<p>Requires <b>2</b> planes.</p>"),
+        2,
+        nullptr,
+        [](Planes& p) -> std::unique_ptr<Automaton> {
+            return std::make_unique<Scarves>(p);
         }
     });
 
@@ -89,16 +130,8 @@ QList<RecipeDescriptor> RecipeRegistry::builtIn()
         QStringLiteral("TimeTunnel"),
         QStringLiteral(
             "<h2>TimeTunnel</h2>"
-            "<p>Reversible two-plane automaton (Von Neumann).</p>"
-            "<h3>Rule</h3>"
-            "<p>"
-            "count = Σ VN(plane₀) + center<br>"
-            "new₀ = (count ≠ 0 ∧ count ≠ 5) ? 1 : 0<br>"
-            "new₀ = new₀ ⊕ plane₁[i]<br>"
-            "new₁ = plane₀[i]"
-            "</p>"
-            "<p><b>Tip:</b> Use <i>Planes → Swap Planes (0 ↔ 1)</i> "
-            "to reverse time.</p>"
+            "<p>Reversible two-plane automaton (Von Neumann). "
+            "Swap planes to reverse time.</p>"
             "<p>Requires <b>2</b> planes.</p>"),
         2,
         nullptr,
