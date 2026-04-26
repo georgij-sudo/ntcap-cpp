@@ -12,6 +12,8 @@ add_executable(ntcap-gui
     converters/PlanesConverter.cpp
     converters/CsvPlanesConverter.cpp
     converters/RlePlanesConverter.cpp
+    converters/PlaintextPlanesConverter.cpp
+    converters/LifeRlePlanesConverter.cpp
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
@@ -49,7 +51,6 @@ add_executable(ntcap-gui
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp
     StatusBarManager.cpp
-    converters/PlaintextPlanesConverter.cpp
 )
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)

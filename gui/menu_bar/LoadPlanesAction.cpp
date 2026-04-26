@@ -4,6 +4,7 @@
 #include "RlePlanesConverter.h"
 #include "CsvPlanesConverter.h"
 #include "PlaintextPlanesConverter.h"
+#include "LifeRlePlanesConverter.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -52,7 +53,12 @@ void LoadPlanesAction::onTriggered()
     if (path.endsWith(".csv", Qt::CaseInsensitive)) {
         converter = std::make_unique<CsvPlanesConverter>();
     } else if (path.endsWith(".rle", Qt::CaseInsensitive)) {
-        converter = std::make_unique<RlePlanesConverter>();
+        std::ifstream probe(path.toStdString(),
+                            std::ios::in | std::ios::binary);
+        if (probe && LifeRlePlanesConverter::looksLikeTextRle(probe))
+            converter = std::make_unique<LifeRlePlanesConverter>();
+        else
+            converter = std::make_unique<RlePlanesConverter>();
     } else if (path.endsWith(".cells", Qt::CaseInsensitive)) {
         converter = std::make_unique<PlaintextPlanesConverter>();
     } else {

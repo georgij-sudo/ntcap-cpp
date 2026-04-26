@@ -4,6 +4,7 @@
 #include "RlePlanesConverter.h"
 #include "CsvPlanesConverter.h"
 #include "PlaintextPlanesConverter.h"
+#include "LifeRlePlanesConverter.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -33,16 +34,17 @@ QAction* SavePlanesAction::action() const noexcept
 
 void SavePlanesAction::onTriggered()
 {
-    const QString rleFilter   = tr("RLE files (*.rle)");
-    const QString csvFilter   = tr("CSV files (*.csv)");
-    const QString cellsFilter = tr("Plaintext cells (*.cells)");
+    const QString lifeRleFilter = tr("Life RLE (*.rle)");
+    const QString binRleFilter  = tr("Binary RLE (*.rle)");
+    const QString csvFilter     = tr("CSV files (*.csv)");
+    const QString cellsFilter   = tr("Plaintext cells (*.cells)");
 
     QString selectedFilter;
     const QString path = QFileDialog::getSaveFileName(
         m_dialogParent,
         tr("Save Planes As"),
         QString(),
-        rleFilter + ";;" + csvFilter + ";;" + cellsFilter,
+        lifeRleFilter + ";;" + binRleFilter + ";;" + csvFilter + ";;" + cellsFilter,
         &selectedFilter);
 
     if (path.isEmpty())
@@ -51,10 +53,11 @@ void SavePlanesAction::onTriggered()
     std::unique_ptr<PlanesConverter> converter;
     QString finalPath = path;
 
-    const bool wantCsv = path.endsWith(".csv", Qt::CaseInsensitive)
-                      || selectedFilter == csvFilter;
-    const bool wantCells = path.endsWith(".cells", Qt::CaseInsensitive)
-                        || selectedFilter == cellsFilter;
+    const bool wantCsv       = path.endsWith(".csv", Qt::CaseInsensitive)
+                            || selectedFilter == csvFilter;
+    const bool wantCells     = path.endsWith(".cells", Qt::CaseInsensitive)
+                            || selectedFilter == cellsFilter;
+    const bool wantBinRle    = selectedFilter == binRleFilter;
 
     if (wantCells) {
         if (!finalPath.endsWith(".cells", Qt::CaseInsensitive))
@@ -64,10 +67,14 @@ void SavePlanesAction::onTriggered()
         if (!finalPath.endsWith(".csv", Qt::CaseInsensitive))
             finalPath += ".csv";
         converter = std::make_unique<CsvPlanesConverter>();
-    } else {
+    } else if (wantBinRle) {
         if (!finalPath.endsWith(".rle", Qt::CaseInsensitive))
             finalPath += ".rle";
         converter = std::make_unique<RlePlanesConverter>();
+    } else {
+        if (!finalPath.endsWith(".rle", Qt::CaseInsensitive))
+            finalPath += ".rle";
+        converter = std::make_unique<LifeRlePlanesConverter>();
     }
 
     try {

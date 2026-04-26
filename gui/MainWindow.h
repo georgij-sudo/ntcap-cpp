@@ -46,6 +46,7 @@ private slots:
     void onSwapPlanesTriggered();
 
 private:
+
     void   buildMenuBar();
     void   buildPlanesMenu();
     void   buildInitializeMenu();
@@ -75,6 +76,7 @@ private:
 
     QMenu*                   m_viewMenu              = nullptr;
     QMenu*                   m_displayModeMenu       = nullptr;
+    QActionGroup*            m_displayActionGroup     = nullptr;   // ← NEW
     ColorMapPresetsAction*   m_colorMapPresetsAction  = nullptr;
     ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
     std::vector<QAction*>    m_displayActions;

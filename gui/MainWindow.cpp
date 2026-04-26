@@ -13,6 +13,9 @@
 #include <QInputDialog>
 #include <QMessageBox>
 
+#include <cstring>
+#include <algorithm>
+
 #include "CellularCanvas.h"
 #include "AutomatonController.h"
 #include "menu_bar/InitializeActions.h"
@@ -91,9 +94,16 @@ void MainWindow::applyLoadedPlanes(const Planes& planes)
     if (wasPlaying)
         m_simulationActions->pause();
 
-    m_canvas->setTripleBuffer(&m_controller->tripleBuffer(), 0);
-    m_canvas->setFieldSize(planes.width(), planes.height());
-    m_canvas->refresh();
+    size_t neededPlanes = m_controller->numPlanes();
+
+    if (planes.numPlanes() >= neededPlanes) {
+        m_controller->resetPlanes(planes);
+    } else {
+        Planes expanded(planes.width(), planes.height(), neededPlanes);
+        size_t copyBytes = planes.size() * planes.numPlanes();
+        std::memcpy(expanded.data(), planes.data(), copyBytes);
+        m_controller->resetPlanes(std::move(expanded));
+    }
 
     if (wasPlaying)
         m_simulationActions->play();
@@ -218,18 +228,22 @@ void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
     if (numPlanes == 0)
         numPlanes = 1;
 
+    disconnect(m_canvas, &CellularCanvas::displayStrategyChanged,
+               this,     &MainWindow::updateDisplayModeActions);
+
     m_displayModeMenu->clear();
     m_displayActions.clear();
 
-    QActionGroup* group = new QActionGroup(this);
-    group->setExclusive(true);
+    delete m_displayActionGroup;
+    m_displayActionGroup = new QActionGroup(this);
+    m_displayActionGroup->setExclusive(true);
 
     std::vector<DisplayStrategyPtr> strategies;
     strategies.reserve(numPlanes + 3);
 
-    for (size_t i = 0; i < numPlanes; ++i) {
+    for (size_t i = 0; i < numPlanes; ++i)
         strategies.push_back(std::make_shared<SinglePlaneStrategy>(i));
-    }
+
     strategies.push_back(std::make_shared<BitfieldStrategy>());
     strategies.push_back(std::make_shared<SaturatingSumStrategy>());
     strategies.push_back(std::make_shared<NormalizedSumStrategy>());
@@ -240,7 +254,7 @@ void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
     for (size_t i = 0; i < avail.size(); ++i) {
         QAction* a = m_displayModeMenu->addAction(avail[i]->name());
         a->setCheckable(true);
-        a->setActionGroup(group);
+        a->setActionGroup(m_displayActionGroup);
         const size_t idx = i;
         connect(a, &QAction::triggered, this, [this, idx]() {
             m_canvas->setDisplayStrategyIndex(idx);
@@ -253,7 +267,7 @@ void MainWindow::rebuildDisplayModeMenu(size_t numPlanes)
         m_displayActions[current]->setChecked(true);
 
     connect(m_canvas, &CellularCanvas::displayStrategyChanged,
-            this,      &MainWindow::updateDisplayModeActions);
+            this,     &MainWindow::updateDisplayModeActions);
 }
 
 void MainWindow::onPlanesReset(const Planes& planes)
@@ -267,9 +281,8 @@ void MainWindow::onPlanesReset(const Planes& planes)
 
 void MainWindow::updateDisplayModeActions(size_t activeIndex)
 {
-    for (size_t i = 0; i < m_displayActions.size(); ++i) {
+    for (size_t i = 0; i < m_displayActions.size(); ++i)
         m_displayActions[i]->setChecked(i == activeIndex);
-    }
 }
 
 void MainWindow::buildPostProcessingMenu()
