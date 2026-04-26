@@ -1,7 +1,5 @@
 set(CMAKE_AUTOMOC ON)
-
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
-
 add_executable(ntcap-gui
     main.cpp
     CellularCanvas.cpp
@@ -10,12 +8,17 @@ add_executable(ntcap-gui
     MouseController.cpp
     Automaton.cpp
     MainWindow.cpp
+    PlaneInitializer.cpp                    # NEW
     converters/PlanesConverter.cpp
     converters/CsvPlanesConverter.cpp
     converters/RlePlanesConverter.cpp
     menu_bar/LoadPlanesAction.cpp
     menu_bar/SavePlanesAction.cpp
     menu_bar/SimulationActions.cpp
+    menu_bar/InitializeActions.cpp          # NEW
+    menu_bar/RandomInitDialog.cpp           # NEW
+    menu_bar/SquareInitDialog.cpp           # NEW
+    menu_bar/CircleInitDialog.cpp           # NEW
     menu_bar/ColorMapFromFileAction.cpp
     menu_bar/ColorMapPresetsAction.cpp
     menu_bar/RecipeActions.cpp
@@ -42,13 +45,11 @@ add_executable(ntcap-gui
     TrailPostProcessor.cpp
     StatusBarManager.cpp
 )
-
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)
 target_include_directories(ntcap-gui PRIVATE menu_bar)
 target_include_directories(ntcap-gui PRIVATE recipes)
 target_include_directories(ntcap-gui PRIVATE color_map)
-
 target_link_libraries(ntcap-gui
     PRIVATE
         Qt6::Core

@@ -18,6 +18,7 @@ class SavePlanesAction;
 class LoadPlanesAction;
 class SimulationActions;
 class RecipeActions;
+class InitializeActions;
 class ColorMapPresetsAction;
 class ColorMapFromFileAction;
 class DisplayStrategy;
@@ -47,6 +48,7 @@ private slots:
 private:
     void   buildMenuBar();
     void   buildPlanesMenu();
+    void   buildInitializeMenu();
     void   buildViewMenu();
     void   buildPostProcessingMenu();
     void   buildInfoBar();
@@ -66,6 +68,8 @@ private:
     LoadPlanesAction*  m_loadAction        = nullptr;
     SimulationActions* m_simulationActions = nullptr;
     QAction*           m_swapPlanesAction  = nullptr;
+
+    InitializeActions* m_initializeActions = nullptr;
 
     RecipeActions*     m_recipeActions     = nullptr;
 

@@ -15,6 +15,7 @@
 
 #include "CellularCanvas.h"
 #include "AutomatonController.h"
+#include "menu_bar/InitializeActions.h"
 #include "menu_bar/SavePlanesAction.h"
 #include "menu_bar/LoadPlanesAction.h"
 #include "menu_bar/SimulationActions.h"
@@ -134,6 +135,9 @@ void MainWindow::buildPlanesMenu()
     m_swapPlanesAction = m_planesMenu->addAction(tr("Swap Planes\u2026"));
     connect(m_swapPlanesAction, &QAction::triggered,
             this, &MainWindow::onSwapPlanesTriggered);
+
+    m_planesMenu->addSeparator();
+    buildInitializeMenu();
 }
 
 void MainWindow::onSwapPlanesTriggered()
@@ -306,6 +310,17 @@ void MainWindow::buildInfoBar()
         m_canvas,
         m_simulationActions,
         this);
+}
+
+void MainWindow::buildInitializeMenu()
+{
+    m_initializeActions = new InitializeActions(
+        m_controller,
+        [this]() { return snapshotCopy(); },
+        this,
+        this);
+
+    m_planesMenu->addMenu(m_initializeActions->menu());
 }
 
 } // namespace ntcap
