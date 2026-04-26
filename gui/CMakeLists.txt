@@ -23,15 +23,15 @@ add_executable(ntcap-gui
     recipes/Parity.cpp
     color_map/ColorMapPresets.cpp
     color_map/ColorMapPresetsDialog.cpp
-
     SinglePlaneStrategy.cpp
     BitfieldStrategy.cpp
     SaturatingSumStrategy.cpp
     NormalizedSumStrategy.cpp
-
-    # new
     recipes/TubeWorms.cpp
     recipes/StableTubeWorms.cpp
+    AntiflickerPostProcessor.cpp
+    GrayscalePostProcessor.cpp
+    TrailPostProcessor.cpp
 )
 
 target_include_directories(ntcap-gui PRIVATE .)

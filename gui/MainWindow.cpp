@@ -1,5 +1,8 @@
- #include "MainWindow.h"
+#include "MainWindow.h"
 
+#include "TrailPostProcessor.h"
+#include "AntiflickerPostProcessor.h"
+#include "GrayscalePostProcessor.h"
 #include <QMenuBar>
 #include <QAction>
 #include <QTimer>
@@ -160,6 +163,8 @@ void MainWindow::buildViewMenu()
     m_colorMapFromFileAction = new ColorMapFromFileAction(
         m_canvas, this, this);
     m_viewMenu->addAction(m_colorMapFromFileAction->action());
+
+    buildPostProcessingMenu();
 }
 
 QMenu* MainWindow::addPlaceholderMenu(const QString& title)
@@ -225,6 +230,32 @@ void MainWindow::updateDisplayModeActions(size_t activeIndex)
     for (size_t i = 0; i < m_displayActions.size(); ++i) {
         m_displayActions[i]->setChecked(i == activeIndex);
     }
+}
+
+// ─── Новый метод: добавить в MainWindow.cpp ─────────────
+// (Полная реализация)
+
+void MainWindow::buildPostProcessingMenu()
+{
+    m_postProcessingMenu = m_viewMenu->addMenu(tr("Post-processing"));
+
+    m_trailAction = m_postProcessingMenu->addAction(tr("Trail / Afterglow"));
+    m_trailAction->setCheckable(true);
+    m_trailAction->setChecked(false);
+    connect(m_trailAction, &QAction::toggled,
+            m_canvas, &CellularCanvas::setTrailEnabled);
+
+    m_antiflickerAction = m_postProcessingMenu->addAction(tr("Antiflicker"));
+    m_antiflickerAction->setCheckable(true);
+    m_antiflickerAction->setChecked(false);
+    connect(m_antiflickerAction, &QAction::toggled,
+            m_canvas, &CellularCanvas::setAntiflickerEnabled);
+
+    m_grayscaleAction = m_postProcessingMenu->addAction(tr("Grayscale"));
+    m_grayscaleAction->setCheckable(true);
+    m_grayscaleAction->setChecked(false);
+    connect(m_grayscaleAction, &QAction::toggled,
+            m_canvas, &CellularCanvas::setGrayscaleEnabled);
 }
 
 } // namespace ntcap
