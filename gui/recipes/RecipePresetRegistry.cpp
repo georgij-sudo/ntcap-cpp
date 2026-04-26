@@ -73,6 +73,24 @@ void randomFillCircle(Planes& planes, size_t planeIdx,
     }
 }
 
+void fillRow(Planes& planes, size_t planeIdx, size_t row, uint8_t value)
+{
+    uint8_t* dst = planes.data() + planeIdx * planes.size();
+    size_t W = planes.width();
+    for (size_t x = 0; x < W; ++x)
+        dst[row * W + x] = value;
+}
+
+void randomFillFirstRowBand(Planes& planes, size_t planeIdx,
+                            size_t from, size_t to)
+{
+    std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<int> coin(0, 1);
+    uint8_t* dst = planes.data() + planeIdx * planes.size();
+    for (size_t x = from; x < to; ++x)
+        dst[x] = static_cast<uint8_t>(coin(rng));
+}
+
 Cells gliderCells()
 {
     return {{1,0},{2,1},{0,2},{1,2},{2,2}};
@@ -131,6 +149,12 @@ QList<RecipePreset> RecipePresetRegistry::presetsFor(const QString& recipeName)
         return timeTunnelPresets();
     if (recipeName.startsWith(QStringLiteral("CyclicRank")))
         return cyclicRankPresets();
+    if (recipeName == QStringLiteral("BrianBrain"))
+        return brianBrainPresets();
+    if (recipeName == QStringLiteral("Histogram"))
+        return histogramPresets();
+    if (recipeName == QStringLiteral("Scarves"))
+        return scarvesPresets();
     return {};
 }
 
@@ -238,8 +262,6 @@ QList<RecipePreset> RecipePresetRegistry::parityPresets()
         out.append({QStringLiteral("Single pixel"),
                     QStringLiteral("One cell in the centre.\n"
                                    "Produces a growing diamond (Sierpinski-like).\n"
-                                   "After ~100 steps the front wraps the torus\n"
-                                   "and creates stripe interference — this is normal.\n"
                                    "Field: 200x200."),
                     std::move(p)});
     }
@@ -324,7 +346,7 @@ QList<RecipePreset> RecipePresetRegistry::stableTubeWormsPresets()
     return out;
 }
 
-// ── Time Tunnel (продолжение) ───────────────────────────
+// ── TimeTunnel ──────────────────────────────────────────
 
 QList<RecipePreset> RecipePresetRegistry::timeTunnelPresets()
 {
@@ -399,6 +421,139 @@ QList<RecipePreset> RecipePresetRegistry::cyclicRankPresets()
                     QStringLiteral("Every cell gets a random state 0..15.\n"
                                    "Recommendation: statesCount = 16.\n"
                                    "Field: 200x200."),
+                    std::move(p)});
+    }
+
+    return out;
+}
+
+// ── Brian's Brain ───────────────────────────────────────
+
+QList<RecipePreset> RecipePresetRegistry::brianBrainPresets()
+{
+    QList<RecipePreset> out;
+
+    {
+        Planes p(200, 200, 2);
+        randomFill(p, 0, 0.20, 1);
+        out.append({QStringLiteral("Random 20%"),
+                    QStringLiteral("Random firing cells on plane 0, 20% density.\n"
+                                   "Plane 1 empty (no dying cells initially).\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(200, 200, 2);
+        randomFillCircle(p, 0, 0.5, 0.30, 1);
+        out.append({QStringLiteral("Circle 30%"),
+                    QStringLiteral("Circular seed ~50% radius, 30% density on plane 0.\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(200, 200, 2);
+        randomFill(p, 0, 0.50, 1);
+        out.append({QStringLiteral("Random 50%"),
+                    QStringLiteral("Dense random firing cells on plane 0, 50% density.\n"
+                                   "Creates chaotic waves.\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(100, 100, 2);
+        Cells line;
+        for (int x = 0; x < 20; ++x)
+            line.push_back({x, 0});
+        stampCentered(p, 0, line, 20, 1);
+        out.append({QStringLiteral("Horizontal line"),
+                    QStringLiteral("20-cell horizontal line in the centre.\n"
+                                   "Field: 100x100, 2 planes."),
+                    std::move(p)});
+    }
+
+    return out;
+}
+
+// ── Histogram ───────────────────────────────────────────
+
+QList<RecipePreset> RecipePresetRegistry::histogramPresets()
+{
+    QList<RecipePreset> out;
+
+    {
+        Planes p(200, 200, 2);
+        randomFill(p, 0, 0.20, 1);
+        fillRow(p, 1, 0, 1);
+        fillRow(p, 1, p.height() - 1, 1);
+        out.append({QStringLiteral("Standard (20%)"),
+                    QStringLiteral("Plane 0: random 20% particles.\n"
+                                   "Plane 1: walls on top and bottom rows.\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(200, 200, 2);
+        randomFill(p, 0, 0.40, 1);
+        fillRow(p, 1, 0, 1);
+        fillRow(p, 1, p.height() - 1, 1);
+        out.append({QStringLiteral("Dense (40%)"),
+                    QStringLiteral("Plane 0: random 40% particles.\n"
+                                   "Plane 1: walls on top and bottom rows.\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(100, 100, 2);
+        randomFill(p, 0, 0.10, 1);
+        fillRow(p, 1, 0, 1);
+        fillRow(p, 1, p.height() - 1, 1);
+        out.append({QStringLiteral("Small sparse (10%)"),
+                    QStringLiteral("Plane 0: random 10% particles.\n"
+                                   "Plane 1: walls on top and bottom rows.\n"
+                                   "Field: 100x100, 2 planes."),
+                    std::move(p)});
+    }
+
+    return out;
+}
+
+// ── Scarves ─────────────────────────────────────────────
+
+QList<RecipePreset> RecipePresetRegistry::scarvesPresets()
+{
+    QList<RecipePreset> out;
+
+    {
+        Planes p(200, 200, 2);
+        size_t from = 2 * p.width() / 5;
+        size_t to   = 3 * p.width() / 5;
+        randomFillFirstRowBand(p, 0, from, to);
+        randomFillFirstRowBand(p, 1, from, to);
+        out.append({QStringLiteral("Standard"),
+                    QStringLiteral("Both planes seeded in middle fifth of first row.\n"
+                                   "Field: 200x200, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(300, 300, 2);
+        size_t from = 2 * p.width() / 5;
+        size_t to   = 3 * p.width() / 5;
+        randomFillFirstRowBand(p, 0, from, to);
+        randomFillFirstRowBand(p, 1, from, to);
+        out.append({QStringLiteral("Large"),
+                    QStringLiteral("Same pattern, larger field.\n"
+                                   "Field: 300x300, 2 planes."),
+                    std::move(p)});
+    }
+    {
+        Planes p(200, 200, 2);
+        size_t from = p.width() / 4;
+        size_t to   = 3 * p.width() / 4;
+        randomFillFirstRowBand(p, 0, from, to);
+        randomFillFirstRowBand(p, 1, from, to);
+        out.append({QStringLiteral("Wide band"),
+                    QStringLiteral("Wider initial band (middle half of first row).\n"
+                                   "Field: 200x200, 2 planes."),
                     std::move(p)});
     }
 

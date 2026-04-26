@@ -31,9 +31,14 @@ add_executable(ntcap-gui
     recipes/StableTubeWorms.cpp
     recipes/TimeTunnel.cpp
     recipes/CyclicRank.cpp
+    recipes/BrianBrain.cpp
+    recipes/Histogram.cpp
+    recipes/Scarves.cpp
     recipes/RecipeRegistry.cpp
     recipes/RecipeParameterWidget.cpp
     recipes/CyclicRankParameterWidget.cpp
+    recipes/RecipePresetRegistry.cpp
+    recipes/RecipePresetDialog.cpp
     color_map/ColorMapPresets.cpp
     color_map/ColorMapPresetsDialog.cpp
     SinglePlaneStrategy.cpp
@@ -44,8 +49,6 @@ add_executable(ntcap-gui
     GrayscalePostProcessor.cpp
     TrailPostProcessor.cpp
     StatusBarManager.cpp
-    recipes/RecipePresetRegistry.cpp    #(NEW)
-    recipes/RecipePresetDialog.cpp      #(NEW)
 )
 target_include_directories(ntcap-gui PRIVATE .)
 target_include_directories(ntcap-gui PRIVATE converters)

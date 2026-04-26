@@ -30,6 +30,9 @@ private:
     static QList<RecipePreset> stableTubeWormsPresets();
     static QList<RecipePreset> timeTunnelPresets();
     static QList<RecipePreset> cyclicRankPresets();
+    static QList<RecipePreset> brianBrainPresets();
+    static QList<RecipePreset> histogramPresets();
+    static QList<RecipePreset> scarvesPresets();
 };
 
 } // namespace ntcap
