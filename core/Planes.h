@@ -74,6 +74,11 @@ public:
      */
     void swapPlanes(size_t a, size_t b);
 
+    /**
+     * @brief Set every cell in every plane to zero.
+     */
+    void resetAll() noexcept;
+
 private:
     size_t m_width;
     size_t m_size;
