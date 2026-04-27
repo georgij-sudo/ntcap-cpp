@@ -57,7 +57,6 @@ void CyclicRank::step()
             dst[idx] = hasStronger ? stronger : plane[idx];
         }
     }
-    commit();
 }
 
 void CyclicRank::setCurrent(Planes& current)
