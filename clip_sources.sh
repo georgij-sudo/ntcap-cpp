@@ -11,7 +11,7 @@ declare -A MODULE_DIRS=(
     [shell]="shell"
 )
 
-EXCLUDED_DIRS=("patterns" "tests" "build")
+EXCLUDED_DIRS=("patterns" "tests" "build" "recipes/impl")
 
 usage() {
     cat <<EOF
@@ -216,7 +216,8 @@ else
             continue
         fi
         mapfile -d '' -t chunk < <(
-            find "$dir" -type f \( "${find_expr[@]}" \) -print0 2>/dev/null
+            find "$dir" -type f \( "${find_expr[@]}" \) \
+                "${exclude_args[@]}" -print0 2>/dev/null
         )
         raw_files+=("${chunk[@]}")
     done
