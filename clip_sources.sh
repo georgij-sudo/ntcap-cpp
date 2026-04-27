@@ -265,10 +265,10 @@ prefix="$PROJECT_ROOT/"
 
 line_count=$(wc -l < "$TMPFILE")
 
-echo "Скопировано ${#files[@]} файл(ов), ${line_count} строк:" >&2
 for f in "${files[@]}"; do
     echo "  ${f#"$prefix"}" >&2
 done
+echo "Скопировано ${#files[@]} файл(ов), ${line_count} строк:" >&2
 
 if ! xclip -selection clipboard < "$TMPFILE"; then
     error_exit "Ошибка: xclip завершился с ошибкой." 2
