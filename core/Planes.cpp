@@ -1,10 +1,8 @@
 #include "Planes.h"
 
+#include <algorithm>
+#include <cstring>
 #include <stdexcept>
-
-/**
- * VIBE CODE ALERT
- */
 
 namespace ntcap {
 
@@ -87,6 +85,11 @@ void Planes::swapPlanes(size_t a, size_t b)
     uint8_t* pa = m_data.data() + a * m_size;
     uint8_t* pb = m_data.data() + b * m_size;
     std::swap_ranges(pa, pa + m_size, pb);
+}
+
+void Planes::resetAll() noexcept
+{
+    std::memset(m_data.data(), 0, m_data.size());
 }
 
 } // namespace ntcap

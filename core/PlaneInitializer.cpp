@@ -1,6 +1,7 @@
 #include "PlaneInitializer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <random>
 #include <stdexcept>
@@ -22,42 +23,87 @@ static void validateDensity(double density)
             "density must be in [0, 1], got " + std::to_string(density));
 }
 
+static void validateDistribution(const DistributionParams& dist)
+{
+    if (auto* u = std::get_if<UniformParams>(&dist)) {
+        if (u->minValue > u->maxValue)
+            throw std::invalid_argument(
+                "Uniform: minValue (" + std::to_string(u->minValue) +
+                ") > maxValue (" + std::to_string(u->maxValue) + ")");
+    } else if (auto* n = std::get_if<NormalParams>(&dist)) {
+        if (n->stddev <= 0.0)
+            throw std::invalid_argument(
+                "Normal: stddev must be > 0, got " +
+                std::to_string(n->stddev));
+    }
+}
+
 static uint8_t* planeData(Planes& planes, size_t planeIndex) noexcept
 {
     return planes.data() + planeIndex * planes.size();
 }
 
+static void fillPlane(uint8_t* dst, size_t count, double density,
+                      const DistributionParams& dist, std::mt19937& rng)
+{
+    std::bernoulli_distribution gate(density);
+
+    std::visit([&](const auto& p) {
+        using T = std::decay_t<decltype(p)>;
+
+        if constexpr (std::is_same_v<T, BernoulliParams>) {
+            for (size_t i = 0; i < count; ++i) {
+                if (gate(rng))
+                    dst[i] = p.value;
+            }
+        } else if constexpr (std::is_same_v<T, UniformParams>) {
+            std::uniform_int_distribution<int> valueDist(p.minValue, p.maxValue);
+            for (size_t i = 0; i < count; ++i) {
+                if (gate(rng))
+                    dst[i] = static_cast<uint8_t>(valueDist(rng));
+            }
+        } else if constexpr (std::is_same_v<T, NormalParams>) {
+            std::normal_distribution<double> valueDist(p.mean, p.stddev);
+            for (size_t i = 0; i < count; ++i) {
+                if (gate(rng)) {
+                    double raw = std::round(valueDist(rng));
+                    double clamped = std::clamp(raw, 0.0, 255.0);
+                    dst[i] = static_cast<uint8_t>(clamped);
+                }
+            }
+        }
+    }, dist);
+}
+
 void PlaneInitializer::randomFill(Planes& planes, size_t planeIndex,
-                                   double density, uint8_t value)
+                                   const RandomFillParams& params)
 {
     validatePlaneIndex(planes, planeIndex);
-    validateDensity(density);
+    validateDensity(params.density);
+    validateDistribution(params.distribution);
 
-    if (density <= 0.0)
+    if (params.density <= 0.0)
         return;
 
+    std::mt19937 rng(params.seed);
     uint8_t* dst = planeData(planes, planeIndex);
-    const size_t count = planes.size();
-
-    if (density >= 1.0) {
-        std::memset(dst, value, count);
-        return;
-    }
-
-    std::mt19937 rng{std::random_device{}()};
-    std::bernoulli_distribution dist(density);
-
-    for (size_t i = 0; i < count; ++i) {
-        if (dist(rng))
-            dst[i] = value;
-    }
+    fillPlane(dst, planes.size(), params.density, params.distribution, rng);
 }
 
 void PlaneInitializer::randomFillAll(Planes& planes,
-                                      double density, uint8_t value)
+                                      const RandomFillParams& params)
 {
-    for (size_t p = 0; p < planes.numPlanes(); ++p)
-        randomFill(planes, p, density, value);
+    validateDensity(params.density);
+    validateDistribution(params.distribution);
+
+    if (params.density <= 0.0)
+        return;
+
+    std::mt19937 rng(params.seed);
+    for (size_t p = 0; p < planes.numPlanes(); ++p) {
+        uint8_t* dst = planeData(planes, p);
+        fillPlane(dst, planes.size(), params.density, params.distribution, rng);
+    }
 }
 
 void PlaneInitializer::fillSquare(Planes& planes, size_t planeIndex,

@@ -44,6 +44,7 @@ private slots:
     void onPlanesReset(const Planes& planes);
     void updateDisplayModeActions(size_t activeIndex);
     void onSwapPlanesTriggered();
+    void onResetAllTriggered();
 
 private:
 
@@ -69,6 +70,7 @@ private:
     LoadPlanesAction*  m_loadAction        = nullptr;
     SimulationActions* m_simulationActions = nullptr;
     QAction*           m_swapPlanesAction  = nullptr;
+    QAction*           m_resetAllAction    = nullptr;
 
     InitializeActions* m_initializeActions = nullptr;
 
@@ -76,7 +78,7 @@ private:
 
     QMenu*                   m_viewMenu              = nullptr;
     QMenu*                   m_displayModeMenu       = nullptr;
-    QActionGroup*            m_displayActionGroup     = nullptr;   // ← NEW
+    QActionGroup*            m_displayActionGroup     = nullptr;
     ColorMapPresetsAction*   m_colorMapPresetsAction  = nullptr;
     ColorMapFromFileAction*  m_colorMapFromFileAction = nullptr;
     std::vector<QAction*>    m_displayActions;

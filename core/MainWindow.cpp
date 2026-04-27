@@ -146,6 +146,10 @@ void MainWindow::buildPlanesMenu()
     connect(m_swapPlanesAction, &QAction::triggered,
             this, &MainWindow::onSwapPlanesTriggered);
 
+    m_resetAllAction = m_planesMenu->addAction(tr("Reset All"));
+    connect(m_resetAllAction, &QAction::triggered,
+            this, &MainWindow::onResetAllTriggered);
+
     m_planesMenu->addSeparator();
     buildInitializeMenu();
 }
@@ -180,6 +184,22 @@ void MainWindow::onSwapPlanesTriggered()
 
     m_controller->requestSwapPlanes(
         static_cast<size_t>(a), static_cast<size_t>(b));
+}
+
+void MainWindow::onResetAllTriggered()
+{
+    bool wasPlaying = m_simulationActions->isPlaying();
+    if (wasPlaying)
+        m_simulationActions->pause();
+
+    Planes zeroed(m_controller->fieldWidth(),
+                  m_controller->fieldHeight(),
+                  m_controller->numPlanes());
+
+    m_controller->resetPlanes(std::move(zeroed));
+
+    if (wasPlaying)
+        m_simulationActions->play();
 }
 
 void MainWindow::buildViewMenu()
