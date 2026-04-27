@@ -34,6 +34,16 @@ void Automaton::setCurrent(Planes& current)
                                      current.numPlanes());
 }
 
+void Automaton::setSeed(uint32_t seed)
+{
+    m_seed.store(seed, std::memory_order_relaxed);
+}
+
+uint32_t Automaton::seed() const noexcept
+{
+    return m_seed.load(std::memory_order_relaxed);
+}
+
 Planes& Automaton::current() noexcept
 {
     return *m_current;

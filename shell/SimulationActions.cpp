@@ -6,10 +6,9 @@
 
 #include "AutomatonController.h"
 #include "CellularCanvas.h"
+#include "SeedInputDialog.h"
 
 namespace ntcap {
-
-// ── ctor ────────────────────────────────────────────────
 
 SimulationActions::SimulationActions(AutomatonController* controller,
                                      CellularCanvas*      canvas,
@@ -26,13 +25,11 @@ SimulationActions::SimulationActions(AutomatonController* controller,
 {
     m_menu = new QMenu(tr("Simulation"), dialogParent);
 
-    // ── Play / Pause ──
     m_playPauseAction = m_menu->addAction(tr("Pause"));
     m_playPauseAction->setShortcut(QKeySequence(Qt::Key_P));
     connect(m_playPauseAction, &QAction::triggered,
             this,              &SimulationActions::togglePlayPause);
 
-    // ── Step Forward ──
     m_stepForwardAction = m_menu->addAction(tr("Step Forward"));
     m_stepForwardAction->setShortcut(QKeySequence(Qt::Key_N));
     m_stepForwardAction->setEnabled(true);
@@ -41,26 +38,25 @@ SimulationActions::SimulationActions(AutomatonController* controller,
 
     m_menu->addSeparator();
 
-    // ── Set step delay (ms) ──
     QAction* delayAction = m_menu->addAction(tr("Set step delay (ms)\u2026"));
     connect(delayAction, &QAction::triggered,
             this,        &SimulationActions::promptStepDelay);
 
-    // ── Skip rendering every N frames ──
     QAction* skipAction = m_menu->addAction(tr("Skip rendering every N frames\u2026"));
     connect(skipAction, &QAction::triggered,
             this,       &SimulationActions::promptSkipRendering);
 
+    QAction* seedAction = m_menu->addAction(tr("Random seed\u2026"));
+    connect(seedAction, &QAction::triggered,
+            this,       &SimulationActions::promptRandomSeed);
+
     m_menu->addSeparator();
 
-    // ── Fit Plane to Window ──
     QAction* fitAction = m_menu->addAction(tr("Fit Plane to Window"));
     fitAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
     connect(fitAction, &QAction::triggered,
             this,      &SimulationActions::fitPlaneToWindow);
 }
-
-// ── public ──────────────────────────────────────────────
 
 QMenu* SimulationActions::menu() const noexcept { return m_menu; }
 bool   SimulationActions::isPlaying() const noexcept { return m_playing; }
@@ -80,8 +76,6 @@ void SimulationActions::pause()
         updatePlayPauseState(false);
     }
 }
-
-// ── private slots ───────────────────────────────────────
 
 void SimulationActions::togglePlayPause()
 {
@@ -107,9 +101,9 @@ void SimulationActions::promptStepDelay()
         tr("Step delay"),
         tr("Delay between steps (ms):"),
         static_cast<int>(m_controller->stepDelayMs()),
-        0,      // min
-        60000,  // max
-        1,      // step
+        0,
+        60000,
+        1,
         &ok);
 
     if (ok)
@@ -124,13 +118,20 @@ void SimulationActions::promptSkipRendering()
         tr("Render interval"),
         tr("Render every N-th frame (1 = every frame):"),
         static_cast<int>(m_controller->renderInterval()),
-        1,       // min
-        100000,  // max
-        1,       // step
+        1,
+        100000,
+        1,
         &ok);
 
     if (ok)
         m_controller->setRenderInterval(static_cast<size_t>(n));
+}
+
+void SimulationActions::promptRandomSeed()
+{
+    SeedInputDialog dlg(m_controller->automatonSeed(), m_dialogParent);
+    if (dlg.exec() == QDialog::Accepted)
+        m_controller->setAutomatonSeed(dlg.seedValue());
 }
 
 void SimulationActions::fitPlaneToWindow()
@@ -140,8 +141,6 @@ void SimulationActions::fitPlaneToWindow()
 
     m_canvas->fitToWindow();
 }
-
-// ── private ─────────────────────────────────────────────
 
 void SimulationActions::updatePlayPauseState(bool playing)
 {
