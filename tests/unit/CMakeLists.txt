@@ -15,24 +15,34 @@ FetchContent_MakeAvailable(googletest)
 # Включаем модуль GoogleTest для автообнаружения тестов
 include(GoogleTest)
 
-# --- Создание тестового исполняемого файла ---
 add_executable(unit_tests
+    ${CMAKE_SOURCE_DIR}/core/Planes.cpp
+    ${CMAKE_SOURCE_DIR}/recipes/infra/TorusTopology.cpp
+    ${CMAKE_SOURCE_DIR}/recipes/infra/MooreN.cpp
+    ${CMAKE_SOURCE_DIR}/recipes/infra/VonNeumannN.cpp
+    ${CMAKE_SOURCE_DIR}/converters/PlanesCsvConverter.cpp
+    ${CMAKE_SOURCE_DIR}/converters/PlanesRleConverter.cpp
+
     main.cpp
-    table_rule.cpp
-    torus.cpp
     planes.cpp
+    torus.cpp
+    moore.cpp
     von_neumann.cpp
     planes_csv.cpp
     planes_rle.cpp
-    moore.cpp
-    # test_another.cpp     # добавляйте файлы по мере роста
+    table_rule.cpp
+)
+
+target_include_directories(unit_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/core
+    ${CMAKE_SOURCE_DIR}/recipes/infra
+    ${CMAKE_SOURCE_DIR}/converters
 )
 
 target_link_libraries(unit_tests
     PRIVATE
-        ntcap               # тестируемая библиотека
         GTest::gtest
-        GTest::gmock        # если нужны моки
+        GTest::gmock
 )
 
 target_compile_features(unit_tests PRIVATE cxx_std_20)
