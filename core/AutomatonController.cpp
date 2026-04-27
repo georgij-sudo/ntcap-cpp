@@ -1,6 +1,7 @@
 #include "AutomatonController.h"
 #include <cstring>
 #include <algorithm>
+#include <random>
 
 namespace ntcap {
 
@@ -11,8 +12,12 @@ AutomatonController::AutomatonController(Planes planes,
     , m_current(std::move(planes))
     , m_automaton(std::move(automaton))
 {
+    std::random_device rd;
+    m_automatonSeed.store(rd() & 0x7FFFFFFFu, std::memory_order_relaxed);
+
     rebuildTripleBuffer();
     m_automaton->setCurrent(m_current);
+    applySeedToAutomaton();
     cacheAutomatonInfo();
     publishSnapshot();
 }
@@ -70,6 +75,23 @@ size_t AutomatonController::numPlanes() const noexcept
     return m_current.numPlanes();
 }
 
+uint32_t AutomatonController::automatonSeed() const noexcept
+{
+    return m_automatonSeed.load(std::memory_order_relaxed);
+}
+
+void AutomatonController::setAutomatonSeed(uint32_t seed)
+{
+    m_automatonSeed.store(seed, std::memory_order_relaxed);
+    applySeedToAutomaton();
+}
+
+void AutomatonController::applySeedToAutomaton()
+{
+    if (m_automaton)
+        m_automaton->setSeed(m_automatonSeed.load(std::memory_order_relaxed));
+}
+
 void AutomatonController::cacheAutomatonInfo()
 {
     if (m_automaton) {
@@ -96,6 +118,7 @@ void AutomatonController::setAutomaton(std::unique_ptr<Automaton> automaton)
     Q_ASSERT(!m_running.load());
     m_automaton = std::move(automaton);
     m_automaton->setCurrent(m_current);
+    applySeedToAutomaton();
     cacheAutomatonInfo();
 }
 
@@ -117,6 +140,7 @@ void AutomatonController::changeRecipe(AutomatonFactory factory,
     m_automaton = factory(m_current);
     m_generation.store(0, std::memory_order_release);
 
+    applySeedToAutomaton();
     cacheAutomatonInfo();
     rebuildTripleBuffer();
     publishSnapshot();
@@ -137,6 +161,7 @@ void AutomatonController::resetPlanes(Planes planes)
     rebuildTripleBuffer();
 
     m_automaton->setCurrent(m_current);
+    applySeedToAutomaton();
     cacheAutomatonInfo();
     emit planesReset(m_current);
     publishSnapshot();

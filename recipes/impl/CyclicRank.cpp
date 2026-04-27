@@ -105,4 +105,9 @@ int CyclicRank::probability() const noexcept
     return m_probability;
 }
 
+void CyclicRank::setSeed(uint32_t seed) {
+    Automaton::setSeed(seed);
+    m_rng = std::mt19937{seed};
+}
+
 } // namespace ntcap

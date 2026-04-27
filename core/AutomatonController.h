@@ -3,6 +3,7 @@
 #include <QThread>
 #include <QString>
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <functional>
 #include "Planes.h"
@@ -56,6 +57,21 @@ public:
      */
     size_t numPlanes() const noexcept;
 
+    /**
+     * @brief Current automaton seed value (thread-safe).
+     */
+    uint32_t automatonSeed() const noexcept;
+
+    /**
+     * @brief Set the automaton RNG seed.
+     *
+     * Stores the seed in the controller (survives recipe changes)
+     * and forwards it to the current automaton instance.
+     *
+     * @param seed  new seed value.
+     */
+    void setAutomatonSeed(uint32_t seed);
+
     void setAutomaton(std::unique_ptr<Automaton> automaton);
 
     /**
@@ -95,6 +111,7 @@ private:
     void publishSnapshot();
     void cacheAutomatonInfo();
     void rebuildTripleBuffer();
+    void applySeedToAutomaton();
 
     Planes                              m_current;
     std::unique_ptr<Automaton>          m_automaton;
@@ -106,6 +123,7 @@ private:
     std::atomic<size_t>        m_renderInterval{1};
     std::atomic<size_t>        m_skipRemaining{0};
     std::atomic<size_t>        m_stepDelayMs{0};
+    std::atomic<uint32_t>      m_automatonSeed{0};
 
     struct SwapRequest {
         std::atomic<bool> pending{false};

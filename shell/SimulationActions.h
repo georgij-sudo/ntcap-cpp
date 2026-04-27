@@ -35,6 +35,7 @@ private slots:
     void stepForward();
     void promptStepDelay();
     void promptSkipRendering();
+    void promptRandomSeed();
     void fitPlaneToWindow();
 
 private:

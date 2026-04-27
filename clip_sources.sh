@@ -16,14 +16,14 @@ EXCLUDED_DIRS=("patterns" "tests" "build" "recipes/impl")
 usage() {
     cat <<EOF
 Использование:
-  $(basename "$0") [-h|--headers | -c|--cpp | -a|--all] [module|ClassName] ...
+  $(basename "$0") [-h|--headers | -c|--cpp | -a|--all] [--no-core] [module|ClassName] ...
 
 Модули: ${!MODULE_DIRS[*]}
   core добавляется автоматически при указании любого модуля.
   Без аргументов копируется только core.
 
 Аргумент с заглавной буквы — поиск файлов Name.* по проекту
-(исключая patterns/, tests/, build/).
+(исключая patterns/, tests/, build/, recipes/impl/).
 
 Нельзя смешивать модули и файловые паттерны в одном вызове.
 
@@ -31,13 +31,14 @@ usage() {
   -h, --headers    Только .h
   -c, --cpp        Только .cpp и CMakeLists.txt
   -a, --all        .h, .cpp и CMakeLists.txt (по умолчанию)
+  --no-core        Не добавлять core автоматически
 
 Примеры:
-  $(basename "$0")                 # только core (-a)
-  $(basename "$0") core            # только core (-a)
-  $(basename "$0") rendering       # core + rendering (-a)
-  $(basename "$0") -h rendering    # core + rendering (только .h)
-  $(basename "$0") Automata        # файлы Automata.h / Automata.cpp
+  $(basename "$0")                     # только core (-a)
+  $(basename "$0") rendering           # core + rendering (-a)
+  $(basename "$0") --no-core rendering # только rendering (-a)
+  $(basename "$0") -h rendering        # core + rendering (только .h)
+  $(basename "$0") Automata            # файлы Automata.h / Automata.cpp
 EOF
 }
 
@@ -112,12 +113,17 @@ is_file_pattern() {
 }
 
 flag="-a"
+no_core=false
 args=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--headers|-c|--cpp|-a|--all)
             flag="$1"
+            shift
+            ;;
+        --no-core)
+            no_core=true
             shift
             ;;
         --help)
@@ -198,15 +204,17 @@ else
         modules=("core")
     fi
 
-    has_core=false
-    for m in "${modules[@]}"; do
-        if [[ "$m" == "core" ]]; then
-            has_core=true
-            break
+    if [[ "$no_core" == false ]]; then
+        has_core=false
+        for m in "${modules[@]}"; do
+            if [[ "$m" == "core" ]]; then
+                has_core=true
+                break
+            fi
+        done
+        if [[ "$has_core" == false ]]; then
+            modules=("core" "${modules[@]}")
         fi
-    done
-    if [[ "$has_core" == false ]]; then
-        modules=("core" "${modules[@]}")
     fi
 
     for m in "${modules[@]}"; do
@@ -265,10 +273,10 @@ prefix="$PROJECT_ROOT/"
 
 line_count=$(wc -l < "$TMPFILE")
 
+echo "Скопировано ${#files[@]} файл(ов), ${line_count} строк:" >&2
 for f in "${files[@]}"; do
     echo "  ${f#"$prefix"}" >&2
 done
-echo "Скопировано ${#files[@]} файл(ов), ${line_count} строк:" >&2
 
 if ! xclip -selection clipboard < "$TMPFILE"; then
     error_exit "Ошибка: xclip завершился с ошибкой." 2

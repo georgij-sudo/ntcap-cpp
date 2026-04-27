@@ -23,6 +23,8 @@ public:
     int statesCount() const noexcept;
     int probability() const noexcept;
 
+    void setSeed(uint32_t seed) override;
+
 private:
     TorusTopology m_topo;
     int m_statesCount;
