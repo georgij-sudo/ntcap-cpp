@@ -45,7 +45,9 @@ Source tree by responsibility:
   plus bidirectional `PlanesCsvConverter` / `PlanesRleConverter`.
 - `shell/` — user-facing actions, dialogs, and input handling: save/load
   actions, `SimulationActions`, `RecipeActions`, keyboard/mouse controllers,
-  status bar manager, init dialogs, color-map actions.
+  status bar manager, init dialogs, color-map actions, `HelpActions` (the Help
+  menu), `AboutDialog`, and `KeyMappingsData` / `KeyMappingsDialog` (the Key
+  Mappings reference).
 
 Architectural patterns to preserve when adding or modifying code:
 
@@ -58,12 +60,19 @@ Architectural patterns to preserve when adding or modifying code:
   not in individual rendering strategies.
 - **Converters** keep `Planes` format-agnostic. New file formats go through
   the converter layer.
+- **Key bindings are documented in one place** — `shell/KeyMappingsData.cpp` is
+  the single source of truth behind Help → Key Mappings. Every keyboard or
+  mouse binding that is added, changed or removed in `KeyboardController`,
+  `MouseController` or `SimulationActions` must be reflected there in the same
+  change.
 
 When adding a new source file, **add it explicitly** to the
 `add_executable(ntcap-gui ...)` list (or the matching test target in
-`tests/CMakeLists.txt`). There is no globbing — sources are listed by hand.
+`tests/unit/CMakeLists.txt`). There is no globbing — sources are listed by hand.
 
 ## Build & Run
+
+For the tokens economy use `tail -n30` command on build commands output.
 
 ### Windows
 
@@ -82,8 +91,8 @@ cmake --build build --parallel
 
 - Unit tests live under `tests/unit/` and are executed in a build command.
 
-- When adding tests, list them explicitly in `tests/CMakeLists.txt`, mirroring
-  the explicit listing style used for `ntcap-gui`.
+- When adding tests, list them explicitly in `tests/unit/CMakeLists.txt`,
+  mirroring the explicit listing style used for `ntcap-gui`.
 
 ## Platform Support
 
@@ -103,6 +112,10 @@ cmake --build build --parallel
   `tests/CMakeLists.txt` as needed to complete the task.
 - **Register new sources.** Every new `.cpp` must be added explicitly to the
   corresponding target. No globbing.
+- **Keep the key-mapping reference in sync.** Any change to a keyboard or mouse
+  binding must update `shell/KeyMappingsData.cpp` in the same change and keep
+  `tests/unit/key_mappings.cpp` passing. The Help → Key Mappings window renders
+  that table, so a stale or missing entry is a bug.
 - **Extend, don't bypass, the architecture.** New automata go through
   `RecipeRegistry`; new renderers implement the strategy interface; new file
   formats go through a converter. Do not add cross-layer shortcuts.
