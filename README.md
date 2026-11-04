@@ -37,6 +37,27 @@ cmake --build build --parallel
 windeployqt build/ntcap-gui.exe
 ```
 
+## Настройка ИИ-агента
+
+### Zoo Code
+
+В целях экономии $$$ был создан отдельный режим `researcher` (см. `.roomodes`).
+
+Перед работой необходимо настроить два профиля во вкладке `Providers`:
+- flash (одна тупая)
+- pro (одна умная)
+
+И расставить для режимов значения поля `API Configuration` следующим образом:
+
+| Mode           | API Configuration |
+|----------------|-------------------|
+| `architect`    | `pro`             |
+| `code`         | `flash`           |
+| `ask`          | `flash`           |
+| `debug`        | `pro`             |
+| `orchestrator` | `flash`           |
+| `researcher`   | `flash`           |
+
 ## Contributing
 
 *TBD*
