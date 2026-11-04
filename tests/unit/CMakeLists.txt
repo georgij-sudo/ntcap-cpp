@@ -22,6 +22,7 @@ add_executable(unit_tests
     ${CMAKE_SOURCE_DIR}/recipes/infra/VonNeumannN.cpp
     ${CMAKE_SOURCE_DIR}/converters/PlanesCsvConverter.cpp
     ${CMAKE_SOURCE_DIR}/converters/PlanesRleConverter.cpp
+    ${CMAKE_SOURCE_DIR}/shell/KeyMappingsData.cpp
 
     main.cpp
     planes.cpp
@@ -31,12 +32,14 @@ add_executable(unit_tests
     planes_csv.cpp
     planes_rle.cpp
     table_rule.cpp
+    key_mappings.cpp
 )
 
 target_include_directories(unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/core
     ${CMAKE_SOURCE_DIR}/recipes/infra
     ${CMAKE_SOURCE_DIR}/converters
+    ${CMAKE_SOURCE_DIR}/shell
 )
 
 target_link_libraries(unit_tests

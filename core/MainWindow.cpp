@@ -23,6 +23,7 @@
 #include "LoadPlanesAction.h"
 #include "SimulationActions.h"
 #include "RecipeActions.h"
+#include "HelpActions.h"
 #include "ColorMapPresetsAction.h"
 #include "ColorMapFromFileAction.h"
 #include "ColorMapPresetsAction.h"
@@ -124,6 +125,8 @@ void MainWindow::buildMenuBar()
     menuBar()->addMenu(m_simulationActions->menu());
 
     buildViewMenu();
+
+    buildHelpMenu();
 }
 
 void MainWindow::buildPlanesMenu()
@@ -233,6 +236,12 @@ void MainWindow::buildViewMenu()
     m_viewMenu->addAction(m_colorMapFromFileAction->action());
 
     buildPostProcessingMenu();
+}
+
+void MainWindow::buildHelpMenu()
+{
+    m_helpActions = new HelpActions(this, this);
+    menuBar()->addMenu(m_helpActions->menu());
 }
 
 QMenu* MainWindow::addPlaceholderMenu(const QString& title)

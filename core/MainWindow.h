@@ -23,6 +23,7 @@ class ColorMapPresetsAction;
 class ColorMapFromFileAction;
 class DisplayStrategy;
 class StatusBarManager;
+class HelpActions;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -52,6 +53,7 @@ private:
     void   buildPlanesMenu();
     void   buildInitializeMenu();
     void   buildViewMenu();
+    void   buildHelpMenu();
     void   buildPostProcessingMenu();
     void   buildInfoBar();
     QMenu* addPlaceholderMenu(const QString& title);
@@ -75,6 +77,8 @@ private:
     InitializeActions* m_initializeActions = nullptr;
 
     RecipeActions*     m_recipeActions     = nullptr;
+
+    HelpActions*       m_helpActions       = nullptr;
 
     QMenu*                   m_viewMenu              = nullptr;
     QMenu*                   m_displayModeMenu       = nullptr;

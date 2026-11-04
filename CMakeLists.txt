@@ -3,6 +3,12 @@ project(my_project VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+# ── generated version header ─────────────────────────
+configure_file(
+    core/Version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Version.h
+    @ONLY
+)
 option(BUILD_TESTS "Собирать тесты" ON)
 option(ENABLE_COVERAGE "Enable coverage reporting" ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
@@ -68,11 +74,16 @@ add_executable(ntcap-gui
     shell/RecipeActions.cpp
     shell/RecipeChangeDialog.cpp
     shell/RecipeInfoDialog.cpp
+    shell/KeyMappingsData.cpp
+    shell/KeyMappingsDialog.cpp
+    shell/AboutDialog.cpp
+    shell/HelpActions.cpp
     shell/KeyboardController.cpp
     shell/MouseController.cpp
     shell/StatusBarManager.cpp
 )
 target_include_directories(ntcap-gui PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
     core
     recipes/infra
     recipes/impl
