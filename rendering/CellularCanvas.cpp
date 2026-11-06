@@ -48,6 +48,7 @@ void CellularCanvas::setFieldSize(size_t width, size_t height)
         return;
     m_fieldWidth  = width;
     m_fieldHeight = height;
+    m_hasFrame    = false;
     m_image = QImage(static_cast<int>(width),
                      static_cast<int>(height),
                      QImage::Format_Indexed8);
@@ -66,6 +67,7 @@ void CellularCanvas::setTripleBuffer(TripleBuffer<Planes>* tb,
 {
     m_triple     = tb;
     m_planeIndex = planeIndex;
+    m_hasFrame   = false;
 }
 
 void CellularCanvas::setColorMap(const QMap<uint8_t, QRgb>& colorMap) noexcept
@@ -113,7 +115,8 @@ void CellularCanvas::setDisplayStrategies(std::vector<DisplayStrategyPtr> strate
     else if (oldIndex >= m_strategies.size())
         m_strategyIndex = 0;
     emit displayStrategyChanged(m_strategyIndex);
-    update();
+    resetStatefulPostProcessors();
+    renderLastFrame();
 }
 
 void CellularCanvas::setDisplayStrategyIndex(size_t idx) noexcept
@@ -124,7 +127,8 @@ void CellularCanvas::setDisplayStrategyIndex(size_t idx) noexcept
         return;
     m_strategyIndex = idx;
     emit displayStrategyChanged(m_strategyIndex);
-    update();
+    resetStatefulPostProcessors();
+    renderLastFrame();
 }
 
 size_t CellularCanvas::displayStrategyIndex() const noexcept
@@ -139,11 +143,30 @@ const std::vector<DisplayStrategyPtr>& CellularCanvas::availableDisplayStrategie
 
 void CellularCanvas::refresh()
 {
+    if (m_triple == nullptr)
+        return;
     if (!m_triple->consume())
+        return;
+    m_hasFrame = true;
+    rebuildImage();
+    applyPostProcessing();
+    update();
+}
+
+void CellularCanvas::renderLastFrame()
+{
+    if (m_triple == nullptr || !m_hasFrame)
         return;
     rebuildImage();
     applyPostProcessing();
     update();
+}
+
+void CellularCanvas::resetStatefulPostProcessors()
+{
+    m_trailProcessor.reset();
+    m_antiflickerProcessor.reset();
+    m_grayscaleProcessor.reset();
 }
 
 void CellularCanvas::zoomIn()
@@ -300,7 +323,8 @@ void CellularCanvas::cycleDisplayModeNext() noexcept
         return;
     m_strategyIndex = (m_strategyIndex + 1) % m_strategies.size();
     emit displayStrategyChanged(m_strategyIndex);
-    update();
+    resetStatefulPostProcessors();
+    renderLastFrame();
 }
 
 void CellularCanvas::cycleDisplayModePrev() noexcept
@@ -309,7 +333,8 @@ void CellularCanvas::cycleDisplayModePrev() noexcept
         return;
     m_strategyIndex = (m_strategyIndex + m_strategies.size() - 1) % m_strategies.size();
     emit displayStrategyChanged(m_strategyIndex);
-    update();
+    resetStatefulPostProcessors();
+    renderLastFrame();
 }
 
 void CellularCanvas::applyPostProcessing()

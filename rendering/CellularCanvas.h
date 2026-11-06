@@ -104,6 +104,8 @@ private:
     void    rebuildColorTable();
     void    rebuildImage();
     void    applyPostProcessing();
+    void    renderLastFrame();
+    void    resetStatefulPostProcessors();
     QPointF widgetToField(const QPointF& widgetPos) const;
 
     size_t                m_fieldWidth   = 0;
@@ -111,6 +113,7 @@ private:
 
     TripleBuffer<Planes>* m_triple       = nullptr;
     size_t                m_planeIndex   = 0;
+    bool                  m_hasFrame     = false;
 
     QMap<uint8_t, QRgb>   m_colorMap;
     QRgb                  m_defaultColor = qRgb(255, 255, 255);
