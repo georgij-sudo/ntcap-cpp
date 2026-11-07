@@ -64,7 +64,7 @@ AboutDialog::AboutDialog(QWidget* parent)
 
     auto* copyrightLabel = makeInfoLabel(
         tr("Copyright \u00A9 2026 \u041A\u0440\u0430\u0439\u043D\u044E\u043A\u043E\u0432 "
-           "\u0413\u0435\u043E\u0440\u0433\u0438\u0439. License: TBD."), this);
+           "\u0413\u0435\u043E\u0440\u0433\u0438\u0439. License: GPLv3."), this);
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
