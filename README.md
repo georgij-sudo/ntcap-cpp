@@ -64,4 +64,9 @@ windeployqt build/ntcap-gui.exe
 
 ## License
 
-*TBD*
+This project is licensed under the terms of the GNU General Public License v3.0. See the LICENSE file for details.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
